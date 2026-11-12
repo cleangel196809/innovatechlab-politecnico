@@ -44,7 +44,8 @@ class CampusAiAgent(models.AbstractModel):
 
     @api.model
     def is_enabled(self):
-        return bool(self._api_key())
+        # Sólo se considera válida una clave real de Anthropic (evita fallos con "pendiente", etc.)
+        return self._api_key().strip().startswith("sk-ant-")
 
     @api.model
     def _call(self, system, messages, max_tokens=2000, temperature=0.4):
