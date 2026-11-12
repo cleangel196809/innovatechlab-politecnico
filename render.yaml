@@ -4,7 +4,7 @@ services:
     name: innobatechlab-campus
     runtime: docker
     plan: free            # para un piloto real con estudiantes use "starter"
-    region: virginia      # cerca de Bogotá y de Neon us-east-1
+    region: ohio      # cerca de Bogotá y de Neon us-east-1
     dockerfilePath: ./Dockerfile
     healthCheckPath: /web/health
     autoDeploy: true
