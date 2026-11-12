@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cert_tree" model="ir.ui.view">
+        <field name="name">campus.certification.tree</field>
+        <field name="model">campus.certification</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="provider"/><field name="name"/><field name="exam_code"/>
+                <field name="level"/><field name="passing_score"/><field name="num_questions"/>
+                <field name="duration_min"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_cert_form" model="ir.ui.view">
+        <field name="name">campus.certification.form</field>
+        <field name="model">campus.certification</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" placeholder="Certificación"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="provider"/><field name="exam_code"/><field name="level"/>
+                            <field name="url" widget="url"/><field name="price_note"/>
+                        </group>
+                        <group string="Simulador">
+                            <field name="passing_score"/><field name="num_questions"/>
+                            <field name="duration_min"/><field name="color" widget="color"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-warning" role="alert" invisible="not verify_note">
+                        <field name="verify_note" nolabel="1"/>
+                    </div>
+                    <notebook>
+                        <page string="Dominios evaluados">
+                            <field name="domain_ids"><tree editable="bottom">
+                                <field name="sequence" widget="handle"/><field name="name"/><field name="weight"/>
+                            </tree></field>
+                        </page>
+                        <page string="Descripción"><field name="description"/></page>
+                        <page string="Cursos"><field name="course_ids"/></page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_cert" model="ir.actions.act_window">
+        <field name="name">Certificaciones internacionales</field>
+        <field name="res_model">campus.certification</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

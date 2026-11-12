@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================ LECCIONES ============================ -->
+    <template id="course_lessons" name="Curso - lecciones">
+        <t t-call="campus_pi.layout">
+            <t t-set="title" t-value="course.name"/>
+            <t t-call="campus_pi.course_header"/>
+            <t t-set="type_ico" t-value="{'lectura': '📖', 'video': '🎬', 'presentacion': '🖼️', 'infografia': '🗺️', 'actividad': '✍️', 'caso': '🧩', 'quiz': '📝', 'sesion_virtual': '💻', 'sesion_presencial': '🏫', 'laboratorio': '🧪'}"/>
+            <div class="cp-course-layout">
+                <aside class="cp-index">
+                    <h4>Índice del curso</h4>
+                    <details t-foreach="course.section_ids" t-as="sec" t-att-open="'open' if (not lesson and sec_first) or (lesson and lesson.section_id == sec) else None">
+                        <summary>
+                            <span t-esc="sec.name"/>
+                            <small><t t-esc="len([l for l in sec.lesson_ids if l.id in done])"/>/<t t-esc="len(sec.lesson_ids)"/></small>
+                        </summary>
+                        <a t-foreach="sec.lesson_ids" t-as="l" t-attf-href="/campus/curso/#{course.id}/leccion/#{l.id}"
+                           t-attf-class="cp-index-item #{'active' if lesson and lesson.id == l.id else ''} #{'done' if l.id in done else ''}">
+                            <span class="cp-check" t-esc="'✔' if l.id in done else type_ico.get(l.lesson_type, '•')"/>
+                            <span t-esc="l.name"/>
+                        </a>
+                    </details>
+                </aside>
+
+                <section class="cp-content">
+                    <!-- Portada del curso (estilo aula virtual PI: Inicio, núcleos, cierre) -->
+                    <t t-if="not lesson">
+                        <div class="cp-card">
+                            <h2>Acerca del curso</h2>
+                            <div t-out="course.description"/>
+                            <div class="cp-cols-2">
+                                <div>
+                                    <h4>Resultados de aprendizaje</h4>
+                                    <div t-out="course.outcomes"/>
+                                </div>
+                                <div t-if="course.certification_id">
+                                    <t t-set="cert" t-value="course.certification_id"/>
+                                    <h4>🏅 Certificación internacional objetivo</h4>
+                                    <p><b t-esc="cert.name"/><br/><span class="cp-muted"><t t-esc="cert.provider"/> · <t t-esc="cert.exam_code"/></span></p>
+                                    <div t-foreach="cert.domain_ids" t-as="d" class="cp-domain">
+                                        <span t-esc="d.name"/><b><t t-esc="d.weight"/> %</b>
+                                    </div>
+                                    <p class="cp-muted cp-small" t-esc="cert.price_note"/>
+                                    <a t-if="cert.url" t-att-href="cert.url" target="_blank" class="cp-link">Página oficial ↗</a>
+                                </div>
+                            </div>
+                            <div t-if="course.skills" class="cp-skills">
+                                <span t-foreach="course.skills.split(',')" t-as="s" class="cp-chip" t-esc="s.strip()"/>
+                            </div>
+                        </div>
+                        <div t-foreach="course.section_ids" t-as="sec" class="cp-card cp-section-card">
+                            <div class="cp-section-head">
+                                <h3 t-esc="sec.name"/>
+                                <span class="cp-muted cp-small" t-if="sec.date_start"><t t-esc="sec.date_start"/> → <t t-esc="sec.date_end"/></span>
+                            </div>
+                            <p class="cp-muted" t-esc="sec.objective"/>
+                            <div class="cp-activity-list">
+                                <a t-foreach="sec.lesson_ids" t-as="l" t-attf-href="/campus/curso/#{course.id}/leccion/#{l.id}" t-attf-class="cp-activity #{'done' if l.id in done else ''}">
+                                    <span class="cp-activity-ico" t-esc="type_ico.get(l.lesson_type, '•')"/>
+                                    <span class="cp-activity-txt">
+                                        <b t-esc="l.name"/>
+                                        <small><t t-esc="dict(l._fields['lesson_type'].selection).get(l.lesson_type)"/> · <t t-esc="l.duration_min"/> min
+                                            <t t-if="l.session_datetime"> · <t t-esc="l.session_datetime" t-options="{'widget': 'datetime', 'format': 'EEE d MMM h:mm a'}"/></t></small>
+                                    </span>
+                                    <span class="cp-activity-state" t-esc="'✔ Completada' if l.id in done else ''"/>
+                                </a>
+                            </div>
+                        </div>
+                    </t>
+
+                    <!-- Vista de una lección -->
+                    <t t-if="lesson">
+                        <div class="cp-card cp-lesson">
+                            <p class="cp-eyebrow"><t t-esc="lesson.section_id.name"/> · <t t-esc="dict(lesson._fields['lesson_type'].selection).get(lesson.lesson_type)"/> · <t t-esc="lesson.duration_min"/> min</p>
+                            <h2><t t-esc="type_ico.get(lesson.lesson_type, '')"/> <t t-esc="lesson.name"/></h2>
+                            <p class="cp-lead" t-if="lesson.summary" t-esc="lesson.summary"/>
+                            <div t-if="lesson.session_datetime" class="cp-session-box">
+                                <div><b>🗓️ <t t-esc="lesson.session_datetime" t-options="{'widget': 'datetime', 'format': 'EEEE d MMMM yyyy, h:mm a'}"/></b></div>
+                                <div t-if="lesson.location">📍 <t t-esc="lesson.location"/></div>
+                                <a t-if="lesson.meeting_url" t-att-href="lesson.meeting_url" target="_blank" class="cp-btn cp-btn-primary cp-btn-sm">Unirse a la sesión</a>
+                            </div>
+                            <div t-if="lesson.video_url" class="cp-video"><iframe t-att-src="lesson.video_url" allowfullscreen="allowfullscreen" frameborder="0"/></div>
+                            <div class="cp-rich" t-out="lesson.content"/>
+                            <details t-if="lesson.ai_guide" class="cp-ai-guide" open="open">
+                                <summary>🤖 Cómo te acompaña el agente IA en esta sesión</summary>
+                                <div t-out="lesson.ai_guide"/>
+                            </details>
+                            <div class="cp-row">
+                                <a t-if="lesson.resource_url" t-att-href="lesson.resource_url" target="_blank" class="cp-btn cp-btn-ghost">Abrir recurso ↗</a>
+                                <a t-if="lesson.attachment" t-attf-href="/campus/leccion/#{lesson.id}/archivo" class="cp-btn cp-btn-ghost">Descargar archivo</a>
+                                <a t-attf-href="/campus/curso/#{course.id}/tutor-ia?q=#{'Explícame la lección: ' + lesson.name}" class="cp-btn cp-btn-ghost">🤖 Preguntar al tutor IA</a>
+                            </div>
+                            <div class="cp-lesson-nav">
+                                <a t-if="prev" t-attf-href="/campus/curso/#{course.id}/leccion/#{prev.id}" class="cp-btn cp-btn-ghost">← Anterior</a>
+                                <span/>
+                                <form t-if="enrollment and lesson.id not in done" method="post" t-attf-action="/campus/curso/#{course.id}/leccion/#{lesson.id}/completar">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <input type="hidden" name="next_id" t-att-value="next.id if next else ''"/>
+                                    <button class="cp-btn cp-btn-primary">Marcar como completada <t t-if="next">y continuar →</t></button>
+                                </form>
+                                <a t-elif="next" t-attf-href="/campus/curso/#{course.id}/leccion/#{next.id}" class="cp-btn cp-btn-primary">Siguiente →</a>
+                            </div>
+                        </div>
+                    </t>
+                </section>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================ SIMULADOR ============================ -->
+    <template id="course_simulator" name="Curso - simulador">
+        <t t-call="campus_pi.layout">
+            <t t-call="campus_pi.course_header"/>
+            <t t-set="cert" t-value="course.certification_id"/>
+            <div class="cp-cols">
+                <div class="cp-card">
+                    <h2>🎯 Simulador de certificación</h2>
+                    <p t-if="cert">Practica en condiciones similares al examen <b t-esc="cert.name"/> (<t t-esc="cert.provider"/> <t t-esc="cert.exam_code"/>).</p>
+                    <ul class="cp-facts">
+                        <li><b t-esc="cert.num_questions or 20"/> preguntas aleatorias del banco (<t t-esc="len(course.question_ids)"/> disponibles)</li>
+                        <li><b t-esc="cert.duration_min or 45"/> minutos con cronómetro</li>
+                        <li>Puntaje mínimo: <b><t t-esc="int(cert.passing_score or 70)"/> %</b></li>
+                        <li>Resultado por dominio y retroalimentación pregunta a pregunta</li>
+                    </ul>
+                    <p class="cp-small cp-muted" t-if="cert and cert.verify_note">ℹ️ <t t-esc="cert.verify_note"/></p>
+                    <div t-if="request.params.get('error')" class="cp-alert cp-alert-error">El curso aún no tiene preguntas en el banco.</div>
+                    <form t-if="enrollment" method="post" t-attf-action="/campus/curso/#{course.id}/simulador/iniciar">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <button class="cp-btn cp-btn-primary cp-btn-lg">Iniciar simulacro</button>
+                    </form>
+                    <p t-else="" class="cp-muted">Vista de docente/administrador: los estudiantes inscritos pueden presentar el simulacro.</p>
+                </div>
+                <div class="cp-card">
+                    <h3>Mis intentos</h3>
+                    <div t-if="not attempts" class="cp-muted">Aún no has presentado simulacros.</div>
+                    <table class="cp-table" t-if="attempts">
+                        <tr><th>Fecha</th><th>Puntaje</th><th>Resultado</th><th/></tr>
+                        <tr t-foreach="attempts" t-as="a">
+                            <td t-esc="a.date_start" t-options="{'widget': 'datetime', 'format': 'd MMM, h:mm a'}"/>
+                            <td><b><t t-esc="a.score"/> %</b></td>
+                            <td><span t-attf-class="cp-pill #{'cp-pill-ok' if a.passed else 'cp-pill-warn'}" t-esc="'Aprobado' if a.passed else 'Por mejorar'"/></td>
+                            <td><a t-attf-href="/campus/simulador/#{a.id}/resultado">Ver detalle</a></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="simulator_take" name="Simulador - presentar">
+        <t t-call="campus_pi.layout">
+            <div class="cp-sim-bar">
+                <span><b t-esc="course.name"/> · Simulacro</span>
+                <span class="cp-timer" id="cp-timer" t-att-data-deadline="deadline_ms">--:--</span>
+            </div>
+            <form method="post" t-attf-action="/campus/simulador/#{attempt.id}/enviar" id="cp-sim-form" class="cp-sim">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <div t-foreach="attempt.answer_ids" t-as="ans" class="cp-card cp-question">
+                    <p class="cp-eyebrow">Pregunta <t t-esc="ans_index + 1"/> de <t t-esc="len(attempt.answer_ids)"/> · <t t-esc="ans.question_id.domain"/></p>
+                    <p class="cp-q-text" t-esc="ans.question_id.name"/>
+                    <label t-foreach="ans.question_id.option_ids" t-as="opt" class="cp-option">
+                        <input type="radio" t-attf-name="ans_#{ans.id}" t-att-value="opt.id"/>
+                        <span t-esc="opt.name"/>
+                    </label>
+                </div>
+                <div class="cp-center"><button class="cp-btn cp-btn-primary cp-btn-lg" onclick="return confirm('¿Enviar el simulacro?')">Finalizar y calificar</button></div>
+            </form>
+        </t>
+    </template>
+
+    <template id="simulator_result" name="Simulador - resultado">
+        <t t-call="campus_pi.layout">
+            <t t-call="campus_pi.course_header"/>
+            <div class="cp-card cp-result">
+                <div t-attf-class="cp-score #{'ok' if attempt.passed else 'bad'}">
+                    <b><t t-esc="attempt.score"/> %</b>
+                    <span t-esc="'¡Aprobado!' if attempt.passed else 'Aún no alcanzas el mínimo'"/>
+                    <small>Mínimo requerido: <t t-esc="int(passing)"/> %</small>
+                </div>
+                <div class="cp-domains">
+                    <h3>Resultado por dominio</h3>
+                    <div t-foreach="(attempt.domain_report or {}).items()" t-as="kv" class="cp-domain-bar">
+                        <span t-esc="kv[0]"/>
+                        <div class="cp-progress"><div t-attf-style="width: #{kv[1]['pct']}%; background: #{'#1f9d55' if kv[1]['pct'] &gt;= passing else '#d9534f'}"/></div>
+                        <b><t t-esc="kv[1]['ok']"/>/<t t-esc="kv[1]['total']"/></b>
+                    </div>
+                    <div class="cp-row">
+                        <a t-attf-href="/campus/curso/#{course.id}/tutor-ia?q=Acabo de presentar el simulacro y saqué #{attempt.score}%. Ayúdame a reforzar mis dominios más débiles." class="cp-btn cp-btn-primary">🤖 Plan de refuerzo con el tutor IA</a>
+                        <a t-attf-href="/campus/curso/#{course.id}/simulador" class="cp-btn cp-btn-ghost">Volver al simulador</a>
+                    </div>
+                    <div t-if="enrollment.badge_id" class="cp-alert cp-alert-ok">🏅 ¡Obtuviste tu microcredencial! <a t-attf-href="/campus/credencial/#{enrollment.badge_id.id}/pdf">Descargar PDF</a></div>
+                    <div t-elif="attempt.passed" class="cp-alert">Completa el 100 % de las lecciones para recibir tu microcredencial (vas en <t t-esc="int(enrollment.progress)"/> %).</div>
+                </div>
+            </div>
+            <h2 class="cp-section-title">Revisión</h2>
+            <div t-foreach="attempt.answer_ids" t-as="ans" t-attf-class="cp-card cp-question #{'ok' if ans.is_correct else 'bad'}">
+                <p class="cp-eyebrow"><t t-esc="ans_index + 1"/> · <t t-esc="ans.question_id.domain"/> · <t t-esc="'✔ Correcta' if ans.is_correct else ('✘ Incorrecta' if ans.option_id else '— Sin responder')"/></p>
+                <p class="cp-q-text" t-esc="ans.question_id.name"/>
+                <div t-foreach="ans.question_id.option_ids" t-as="opt" t-attf-class="cp-option-review #{'correct' if opt.is_correct else ''} #{'chosen' if opt == ans.option_id else ''}">
+                    <span t-esc="opt.name"/>
+                    <small t-if="opt == ans.option_id or opt.is_correct" t-esc="opt.feedback"/>
+                </div>
+                <p t-if="ans.question_id.explanation" class="cp-small cp-muted">💡 <t t-esc="ans.question_id.explanation"/></p>
+            </div>
+        </t>
+    </template>
+
+    <!-- ========================= TUTORÍA VIRTUAL ========================= -->
+    <template id="course_tutoring" name="Curso - tutoría virtual">
+        <t t-call="campus_pi.layout">
+            <t t-call="campus_pi.course_header"/>
+            <div class="cp-cols">
+                <div class="cp-card">
+                    <h2>👩‍🏫 Agendar tutoría virtual con docente</h2>
+                    <div t-if="msg" class="cp-alert cp-alert-ok" t-esc="msg"/>
+                    <form t-if="enrollment" method="post" class="cp-form">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <label>Docente</label>
+                        <select name="teacher_id">
+                            <option t-foreach="course.teacher_ids" t-as="t" t-att-value="t.id" t-esc="t.name"/>
+                        </select>
+                        <label>Tema</label>
+                        <input name="name" required="required" placeholder="Ej.: Manejador global de excepciones"/>
+                        <label>Fecha y hora (hora Colombia)</label>
+                        <input type="datetime-local" name="datetime" required="required"/>
+                        <label>Duración</label>
+                        <select name="duration_min"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option></select>
+                        <label>Describe tu duda</label>
+                        <textarea name="notes" rows="3" placeholder="Lo que intentaste, el error que ves, enlace a tu repositorio..."/>
+                        <button class="cp-btn cp-btn-primary">Solicitar tutoría</button>
+                    </form>
+                    <p t-else="" class="cp-muted">Solo estudiantes inscritos pueden agendar.</p>
+                </div>
+                <div class="cp-card">
+                    <h3>Mis tutorías</h3>
+                    <div t-if="not tutorings" class="cp-muted">Sin tutorías agendadas.</div>
+                    <div t-foreach="tutorings" t-as="t" class="cp-agenda-item">
+                        <b t-esc="t.datetime" t-options="{'widget': 'datetime', 'format': 'EEE d MMM, h:mm a'}"/>
+                        <span><t t-esc="t.name"/> · <t t-esc="t.teacher_id.name"/></span>
+                        <span t-attf-class="cp-pill #{'cp-pill-ok' if t.state == 'confirmed' else ''}" t-esc="dict(t._fields['state'].selection).get(t.state)"/>
+                        <a t-if="t.meeting_url and t.state == 'confirmed'" t-att-href="t.meeting_url" target="_blank" class="cp-btn cp-btn-primary cp-btn-sm">Unirse</a>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================ TUTOR IA ============================ -->
+    <template id="course_ai_tutor" name="Curso - tutor IA">
+        <t t-call="campus_pi.layout">
+            <t t-call="campus_pi.course_header"/>
+            <div class="cp-cols cp-cols-wide">
+                <div class="cp-card cp-chat-card">
+                    <h2>🤖 Tutor IA del curso</h2>
+                    <p class="cp-muted cp-small">Conoce las lecciones de este curso, el syllabus y los dominios de la certificación. Te guía paso a paso (no resuelve tus entregables). Las conversaciones las puede revisar tu docente.</p>
+                    <div class="cp-chat" id="cp-chat" t-att-data-url="'/campus/curso/%s/tutor-ia/mensaje' % course.id">
+                        <div class="cp-msg cp-msg-ai">¡Hola, <t t-esc="user.name.split(' ')[0]"/>! Soy tu tutor IA de <b t-esc="course.name"/>. ¿En qué tema quieres trabajar hoy?</div>
+                        <div t-foreach="history" t-as="m" t-attf-class="cp-msg #{'cp-msg-ai' if m.role == 'assistant' else 'cp-msg-me'}" t-att-data-md="'1' if m.role == 'assistant' else None" t-esc="m.content"/>
+                    </div>
+                    <form id="cp-chat-form" class="cp-chat-form">
+                        <textarea id="cp-chat-input" rows="2" placeholder="Escribe tu pregunta..." t-esc="prefill"/>
+                        <button class="cp-btn cp-btn-primary" type="submit">Enviar</button>
+                    </form>
+                    <div class="cp-row cp-small">
+                        <button type="button" class="cp-chip cp-suggest">Explícame el tema más importante del núcleo actual</button>
+                        <button type="button" class="cp-chip cp-suggest">Hazme 3 preguntas tipo examen</button>
+                        <button type="button" class="cp-chip cp-suggest">¿Qué dominios del examen debo reforzar?</button>
+                    </div>
+                </div>
+                <div class="cp-card" id="sesiones">
+                    <h3>📅 Agendar sesión de tutoría con IA</h3>
+                    <p class="cp-small cp-muted">El agente prepara con anticipación un plan personalizado usando tus resultados del simulador.</p>
+                    <form t-if="enrollment" method="post" t-attf-action="/campus/curso/#{course.id}/tutor-ia/agendar" class="cp-form cp-loading-form">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <label>Tema</label>
+                        <input name="name" required="required" placeholder="Ej.: Streams y lambdas"/>
+                        <label>Fecha y hora</label>
+                        <input type="datetime-local" name="datetime" required="required"/>
+                        <label>Duración</label>
+                        <select name="duration_min"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option></select>
+                        <label>¿Qué te cuesta?</label>
+                        <textarea name="notes" rows="2"/>
+                        <button class="cp-btn cp-btn-primary">Agendar y preparar plan</button>
+                    </form>
+                    <div t-foreach="sessions" t-as="s" class="cp-session-ia">
+                        <b t-esc="s.datetime" t-options="{'widget': 'datetime', 'format': 'EEE d MMM, h:mm a'}"/> · <t t-esc="s.name"/>
+                        <details><summary>Ver plan preparado por el agente</summary><div t-out="s.ai_plan"/></details>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ===================== VERIFICACIÓN PÚBLICA ===================== -->
+    <template id="verify_page" name="Verificar microcredencial">
+        <t t-call="campus_pi.layout">
+            <t t-set="hide_nav" t-value="True"/>
+            <t t-set="body_class" t-value="'cp-login-body'"/>
+            <div class="cp-verify cp-card">
+                <img src="/campus_pi/static/src/img/isologo_pi.png" class="cp-login-logo" alt="Politécnico Internacional"/>
+                <t t-if="badge">
+                    <h1 class="cp-ok-text">✔ Microcredencial válida</h1>
+                    <p><b t-esc="badge.user_id.name"/> aprobó <b t-esc="badge.course_id.name"/></p>
+                    <p t-if="badge.certification_id">Preparación para <t t-esc="badge.certification_id.name"/> (<t t-esc="badge.certification_id.provider"/>)</p>
+                    <p class="cp-muted">Emitida el <t t-esc="badge.date"/> · Código <t t-esc="badge.code"/> · Simulador <t t-esc="badge.score"/> %</p>
+                </t>
+                <t t-else="">
+                    <h1 class="cp-bad">✘ Código no encontrado</h1>
+                    <p class="cp-muted">El código <b t-esc="code"/> no corresponde a una microcredencial emitida.</p>
+                </t>
+            </div>
+        </t>
+    </template>
+</odoo>

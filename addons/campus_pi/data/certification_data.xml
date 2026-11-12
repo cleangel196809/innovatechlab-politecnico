@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- ===================== INTELIGENCIA ARTIFICIAL ===================== -->
+        <record id="cert_ai901" model="campus.certification">
+            <field name="name">Microsoft Certified: Azure AI Fundamentals</field>
+            <field name="provider">Microsoft</field>
+            <field name="exam_code">AI-901</field>
+            <field name="url">https://learn.microsoft.com/credentials/certifications/azure-ai-fundamentals/</field>
+            <field name="level">fundamental</field>
+            <field name="passing_score">70</field>
+            <field name="num_questions">30</field>
+            <field name="duration_min">45</field>
+            <field name="price_note">Precio según país donde se presenta (Pearson VUE / en línea). Microsoft Learn ofrece evaluación de práctica gratuita.</field>
+            <field name="color">#0078D4</field>
+            <field name="verify_note">Puntaje oficial 700/1000 (≈70 %). Revisar learn.microsoft.com antes de cada cohorte: AI-901 sustituyó a AI-900 en 2026.</field>
+            <field name="description"><![CDATA[<p>Valida conceptos de IA, aprendizaje automático, visión, lenguaje natural e IA generativa y la implementación de soluciones con <b>Microsoft Foundry</b>.</p>]]></field>
+        </record>
+        <record id="cert_ai901_d1" model="campus.cert.domain">
+            <field name="certification_id" ref="cert_ai901"/><field name="sequence">1</field>
+            <field name="name">Conceptos y capacidades de la IA</field><field name="weight">42.5</field>
+        </record>
+        <record id="cert_ai901_d2" model="campus.cert.domain">
+            <field name="certification_id" ref="cert_ai901"/><field name="sequence">2</field>
+            <field name="name">Implementar soluciones de IA con Microsoft Foundry</field><field name="weight">57.5</field>
+        </record>
+
+        <record id="cert_ibm_ai" model="campus.certification">
+            <field name="name">IBM AI Engineering Professional Certificate</field>
+            <field name="provider">IBM · Coursera</field>
+            <field name="exam_code">Programa (13 cursos)</field>
+            <field name="url">https://www.coursera.org/professional-certificates/ai-engineer</field>
+            <field name="level">professional</field>
+            <field name="passing_score">70</field>
+            <field name="num_questions">20</field>
+            <field name="duration_min">40</field>
+            <field name="price_note">Suscripción Coursera (incluido en Coursera Plus). Insignia digital IBM vía Credly.</field>
+            <field name="color">#0F62FE</field>
+            <field name="verify_note">No es un examen único: es una ruta de 13 cursos (~4 meses a 10 h/sem). Se usa como referente de estructura y como ruta avanzada.</field>
+            <field name="description"><![CDATA[<p>Machine learning con Python, deep learning con Keras/TensorFlow y PyTorch, IA generativa y LLM, fine-tuning, y agentes con RAG y LangChain.</p>]]></field>
+        </record>
+        <record id="cert_ibm_d1" model="campus.cert.domain"><field name="certification_id" ref="cert_ibm_ai"/><field name="name">Machine learning con Python</field><field name="weight">25</field></record>
+        <record id="cert_ibm_d2" model="campus.cert.domain"><field name="certification_id" ref="cert_ibm_ai"/><field name="name">Deep learning (Keras, PyTorch)</field><field name="weight">25</field></record>
+        <record id="cert_ibm_d3" model="campus.cert.domain"><field name="certification_id" ref="cert_ibm_ai"/><field name="name">IA generativa y LLM</field><field name="weight">30</field></record>
+        <record id="cert_ibm_d4" model="campus.cert.domain"><field name="certification_id" ref="cert_ibm_ai"/><field name="name">Agentes, RAG y LangChain</field><field name="weight">20</field></record>
+
+        <!-- ===================== BACKEND (JAVA) ===================== -->
+        <record id="cert_java21" model="campus.certification">
+            <field name="name">Oracle Certified Professional: Java SE 21 Developer</field>
+            <field name="provider">Oracle</field>
+            <field name="exam_code">1Z0-830</field>
+            <field name="url">https://education.oracle.com/java-se-21-developer-professional/pexam_1Z0-830</field>
+            <field name="level">professional</field>
+            <field name="passing_score">68</field>
+            <field name="num_questions">25</field>
+            <field name="duration_min">60</field>
+            <field name="price_note">Examen pago (Oracle University / Pearson VUE). Verificar precio en COP/USD vigente.</field>
+            <field name="color">#C74634</field>
+            <field name="verify_note">POR VERIFICAR en education.oracle.com: n.º de preguntas, duración y puntaje mínimo (referencias de terceros citan ~50 preguntas, 120 min, 68 %). El simulador usa una versión corta.</field>
+            <field name="description"><![CDATA[<p>Certificación profesional de Java SE 21: POO, excepciones, colecciones, streams y lambdas, concurrencia, E/S, módulos y localización. Base sólida para el backend con Spring Boot del curso.</p>]]></field>
+        </record>
+        <record id="cert_java_d1" model="campus.cert.domain"><field name="certification_id" ref="cert_java21"/><field name="name">Arquitectura backend y herramientas</field><field name="weight">15</field></record>
+        <record id="cert_java_d2" model="campus.cert.domain"><field name="certification_id" ref="cert_java21"/><field name="name">Manejo de excepciones y logs</field><field name="weight">25</field></record>
+        <record id="cert_java_d3" model="campus.cert.domain"><field name="certification_id" ref="cert_java21"/><field name="name">Colecciones, streams y lambdas</field><field name="weight">20</field></record>
+        <record id="cert_java_d4" model="campus.cert.domain"><field name="certification_id" ref="cert_java21"/><field name="name">POO y control de flujo en Java</field><field name="weight">20</field></record>
+        <record id="cert_java_d5" model="campus.cert.domain"><field name="certification_id" ref="cert_java21"/><field name="name">Persistencia y APIs REST (Spring)</field><field name="weight">20</field></record>
+
+        <!-- ===================== FRONTEND ===================== -->
+        <record id="cert_jse" model="campus.certification">
+            <field name="name">JSE – Certified Entry-Level JavaScript Programmer</field>
+            <field name="provider">OpenEDG JS Institute</field>
+            <field name="exam_code">JSE-40-01</field>
+            <field name="url">https://jsinstitute.org/</field>
+            <field name="level">fundamental</field>
+            <field name="passing_score">70</field>
+            <field name="num_questions">20</field>
+            <field name="duration_min">40</field>
+            <field name="price_note">Examen en línea (OpenEDG TestNow). Curso preparatorio gratuito en edube.org.</field>
+            <field name="color">#F0B400</field>
+            <field name="verify_note">POR VERIFICAR en jsinstitute.org: n.º de preguntas, duración, precio y puntaje mínimo vigentes.</field>
+            <field name="description"><![CDATA[<p>Certificación de entrada en JavaScript: fundamentos de programación, variables y tipos, operadores, control de flujo y funciones. Complementa el <b>Meta Front-End Developer Professional Certificate</b> (Coursera) como ruta avanzada.</p>]]></field>
+        </record>
+        <record id="cert_jse_d1" model="campus.cert.domain"><field name="certification_id" ref="cert_jse"/><field name="name">HTML5 semántico y accesibilidad</field><field name="weight">20</field></record>
+        <record id="cert_jse_d2" model="campus.cert.domain"><field name="certification_id" ref="cert_jse"/><field name="name">CSS3 y diseño responsivo</field><field name="weight">20</field></record>
+        <record id="cert_jse_d3" model="campus.cert.domain"><field name="certification_id" ref="cert_jse"/><field name="name">Variables, tipos y operadores JS</field><field name="weight">25</field></record>
+        <record id="cert_jse_d4" model="campus.cert.domain"><field name="certification_id" ref="cert_jse"/><field name="name">Control de flujo, funciones y DOM</field><field name="weight">35</field></record>
+    </data>
+</odoo>

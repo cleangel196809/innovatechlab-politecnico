@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="admin_create_course" name="Admin - crear curso con IA">
+        <t t-call="campus_pi.layout">
+            <section class="cp-hero">
+                <div>
+                    <p class="cp-eyebrow">Agente de diseño instruccional</p>
+                    <h1>🤖 Crear curso a partir del syllabus</h1>
+                    <p>Sube el syllabus institucional (PI-GA-FT-141) en PDF o Word. El agente identifica núcleos, resultados de aprendizaje y criterios de evaluación, y genera: lecciones, sesiones virtuales, sesiones presenciales asistidas por IA con guion, cronograma por fechas y preguntas del simulador alineadas con la certificación internacional.</p>
+                </div>
+            </section>
+            <div t-if="not ai_enabled" class="cp-alert">⚠️ No hay API key de Anthropic: el agente trabajará en <b>modo sin IA</b> (estructura por reglas). Configure <code>ANTHROPIC_API_KEY</code> para generación completa.</div>
+            <div t-if="error" class="cp-alert cp-alert-error" t-esc="error"/>
+            <form method="post" enctype="multipart/form-data" class="cp-card cp-form cp-form-grid cp-loading-form">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <div class="cp-span-2">
+                    <label>Nombre del curso</label>
+                    <input name="name" required="required" placeholder="Ej.: Desarrollo Backend con Java y Spring Boot"/>
+                </div>
+                <div class="cp-span-2">
+                    <label>Syllabus (PDF, DOCX o TXT)</label>
+                    <input type="file" name="syllabus" accept=".pdf,.docx,.txt" required="required"/>
+                </div>
+                <div>
+                    <label>Certificación internacional objetivo</label>
+                    <select name="certification_id">
+                        <option value="">— Ninguna —</option>
+                        <option t-foreach="certs" t-as="c" t-att-value="c.id"><t t-esc="c.provider"/> · <t t-esc="c.name"/> (<t t-esc="c.exam_code"/>)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Modalidad</label>
+                    <select name="modality">
+                        <option value="virtual">Virtual</option>
+                        <option value="hibrida">Híbrida (virtual + presencial asistida por IA)</option>
+                        <option value="presencial">Presencial asistida por IA</option>
+                    </select>
+                </div>
+                <div><label>Fecha de inicio</label><input type="date" name="date_start" required="required"/></div>
+                <div><label>Fecha de fin</label><input type="date" name="date_end" required="required"/></div>
+                <div>
+                    <label>Docentes</label>
+                    <div class="cp-checklist">
+                        <label t-foreach="teachers" t-as="t" class="cp-check-item"><input type="checkbox" name="teacher_ids" t-att-value="t.id"/> <t t-esc="t.name"/></label>
+                    </div>
+                </div>
+                <div>
+                    <label>Anexar estudiantes</label>
+                    <div class="cp-checklist">
+                        <label t-foreach="students" t-as="s" class="cp-check-item"><input type="checkbox" name="student_ids" t-att-value="s.id"/> <t t-esc="s.name"/> <small t-esc="s.login"/></label>
+                    </div>
+                </div>
+                <div class="cp-span-2">
+                    <label>Instrucciones adicionales para el agente</label>
+                    <textarea name="instructions" rows="3" placeholder="Ej.: Incluir un laboratorio con Docker en cada núcleo; énfasis en casos de MiPymes colombianas; 2 sesiones presenciales por núcleo."/>
+                </div>
+                <div class="cp-span-2 cp-row">
+                    <button class="cp-btn cp-btn-primary cp-btn-lg">Generar curso con el agente</button>
+                    <span class="cp-muted cp-small">Con IA puede tardar 1 a 3 minutos.</span>
+                </div>
+            </form>
+        </t>
+    </template>
+
+    <template id="admin_courses" name="Admin - cursos">
+        <t t-call="campus_pi.layout">
+            <section class="cp-hero">
+                <div>
+                    <p class="cp-eyebrow">Administración</p>
+                    <h1>🗓️ Cursos, programación e inscripciones</h1>
+                    <p>Ajusta fechas, publica, anexa estudiantes y crea nuevas cuentas. Para editar contenidos y guiones usa “Editar en Odoo”.</p>
+                </div>
+            </section>
+            <div t-if="nuevo" class="cp-alert cp-alert-ok">✅ El agente creó el curso. Revísalo, ajusta lo necesario y publícalo.</div>
+            <div t-if="msg" class="cp-alert cp-alert-ok" t-esc="msg"/>
+            <div class="cp-cols cp-cols-wide">
+                <div>
+                    <form t-foreach="courses" t-as="c" method="post" t-attf-action="/campus/admin/curso/#{c.id}/guardar"
+                          t-attf-class="cp-card cp-admin-course #{'cp-highlight' if c.id == nuevo else ''}" t-attf-style="--accent: #{c.color or '#160B8B'}">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <div class="cp-section-head">
+                            <h3><span t-esc="c.icon"/> <t t-esc="c.name"/> <small t-if="c.ai_generated" class="cp-pill">🤖 IA</small></h3>
+                            <span class="cp-pill" t-esc="dict(c._fields['state'].selection).get(c.state)"/>
+                        </div>
+                        <p class="cp-muted cp-small"><t t-esc="c.certification_id.name or 'Sin certificación'"/> · <t t-esc="c.lesson_count"/> lecciones · <t t-esc="c.question_count"/> preguntas · <t t-esc="c.student_count"/> estudiantes</p>
+                        <div class="cp-form-grid">
+                            <div><label>Inicio</label><input type="date" name="date_start" t-att-value="c.date_start"/></div>
+                            <div><label>Fin</label><input type="date" name="date_end" t-att-value="c.date_end"/></div>
+                            <div><label>Estado</label>
+                                <select name="state">
+                                    <option value="draft" t-att-selected="c.state == 'draft'">Borrador</option>
+                                    <option value="published" t-att-selected="c.state == 'published'">Publicado</option>
+                                    <option value="closed" t-att-selected="c.state == 'closed'">Cerrado</option>
+                                </select>
+                            </div>
+                            <div><label>Anexar estudiantes</label>
+                                <select name="student_ids" multiple="multiple" size="3">
+                                    <t t-foreach="students" t-as="s">
+                                        <option t-if="s not in c.enrollment_ids.mapped('user_id')" t-att-value="s.id" t-esc="s.name"/>
+                                    </t>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="cp-small">Inscritos: <t t-esc="', '.join(c.enrollment_ids.mapped('user_id.name')) or '—'"/></p>
+                        <div class="cp-row">
+                            <button class="cp-btn cp-btn-primary cp-btn-sm">Guardar</button>
+                            <a t-attf-href="/campus/curso/#{c.id}" class="cp-btn cp-btn-ghost cp-btn-sm">Ver como aula</a>
+                            <a t-attf-href="/web#model=campus.course&amp;id=#{c.id}&amp;view_type=form" class="cp-btn cp-btn-ghost cp-btn-sm">Editar en Odoo</a>
+                        </div>
+                    </form>
+                </div>
+                <div>
+                    <form method="post" action="/campus/admin/estudiante/crear" class="cp-card cp-form">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <h3>➕ Crear estudiante</h3>
+                        <label>Nombre completo</label><input name="name" required="required"/>
+                        <label>Correo institucional (usuario)</label><input type="email" name="email" required="required" placeholder="nombre@pi.edu.co"/>
+                        <label>Contraseña inicial</label><input type="text" name="password" required="required" minlength="8"/>
+                        <button class="cp-btn cp-btn-primary">Crear cuenta</button>
+                    </form>
+                    <div class="cp-card">
+                        <h3>Atajos</h3>
+                        <a href="/campus/admin/crear-curso" class="cp-btn cp-btn-primary cp-btn-block">🤖 Crear curso con IA</a>
+                        <a href="/web#action=campus_pi.action_sessions" class="cp-btn cp-btn-ghost cp-btn-block">Calendario de sesiones</a>
+                        <a href="/web#action=campus_pi.action_enrollment" class="cp-btn cp-btn-ghost cp-btn-block">Inscripciones (análisis)</a>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

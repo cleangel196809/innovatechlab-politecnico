@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_campus" model="ir.module.category">
+        <field name="name">Campus PI</field>
+        <field name="description">Roles del campus de microcertificaciones</field>
+        <field name="sequence">5</field>
+    </record>
+
+    <!-- Estudiante: usuario portal (no ve el backend de Odoo) -->
+    <record id="group_campus_student" model="res.groups">
+        <field name="name">Estudiante</field>
+        <field name="category_id" ref="module_category_campus"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_portal'))]"/>
+    </record>
+
+    <!-- Docente: usuario interno -->
+    <record id="group_campus_teacher" model="res.groups">
+        <field name="name">Docente</field>
+        <field name="category_id" ref="module_category_campus"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Administrador del campus -->
+    <record id="group_campus_admin" model="res.groups">
+        <field name="name">Administrador</field>
+        <field name="category_id" ref="module_category_campus"/>
+        <field name="implied_ids" eval="[(4, ref('group_campus_teacher'))]"/>
+        <field name="users" eval="[(4, ref('base.user_admin'))]"/>
+    </record>
+
+    <!-- Reglas: el docente ve sólo sus cursos; el administrador todo -->
+    <record id="rule_course_teacher" model="ir.rule">
+        <field name="name">Docente: cursos asignados</field>
+        <field name="model_id" ref="model_campus_course"/>
+        <field name="domain_force">[('teacher_ids', 'in', user.id)]</field>
+        <field name="groups" eval="[(4, ref('group_campus_teacher'))]"/>
+    </record>
+    <record id="rule_course_admin" model="ir.rule">
+        <field name="name">Administrador: todos los cursos</field>
+        <field name="model_id" ref="model_campus_course"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_campus_admin'))]"/>
+    </record>
+</odoo>

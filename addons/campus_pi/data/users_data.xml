@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- IMPORTANTE: contraseñas de PRUEBA. Cámbielas en producción
+         (Ajustes > Usuarios) y nunca use estas en un entorno con datos reales. -->
+    <data noupdate="1">
+        <record id="user_admin_prueba" model="res.users">
+            <field name="name">Administrador Prueba</field>
+            <field name="login">administrador.prueba@pi.edu.co</field>
+            <field name="email">administrador.prueba@pi.edu.co</field>
+            <field name="password">Oddo123456</field>
+            <field name="tz">America/Bogota</field>
+            <field name="groups_id" eval="[(6, 0, [ref('group_campus_admin'), ref('base.group_system')])]"/>
+        </record>
+        <record id="user_gustavo" model="res.users">
+            <field name="name">Gustavo Contreras</field>
+            <field name="login">gustavo.contreras@pi.edu.co</field>
+            <field name="email">gustavo.contreras@pi.edu.co</field>
+            <field name="password">Oddo123456</field>
+            <field name="tz">America/Bogota</field>
+            <field name="groups_id" eval="[(6, 0, [ref('group_campus_admin'), ref('base.group_system')])]"/>
+        </record>
+        <record id="user_docente_prueba" model="res.users">
+            <field name="name">Docente Prueba</field>
+            <field name="login">docente.prueba@pi.edu.co</field>
+            <field name="email">docente.prueba@pi.edu.co</field>
+            <field name="password">Oddo123456</field>
+            <field name="tz">America/Bogota</field>
+            <field name="groups_id" eval="[(6, 0, [ref('group_campus_teacher')])]"/>
+        </record>
+        <record id="user_estudiante1" model="res.users">
+            <field name="name">Estudiante Prueba</field>
+            <field name="login">prueba.estudiante@pi.edu.co</field>
+            <field name="email">prueba.estudiante@pi.edu.co</field>
+            <field name="password">Oddo123456</field>
+            <field name="tz">America/Bogota</field>
+            <field name="groups_id" eval="[(6, 0, [ref('group_campus_student')])]"/>
+        </record>
+        <record id="user_estudiante2" model="res.users">
+            <field name="name">Estudiante Prueba Dos</field>
+            <field name="login">prueba.estudiante2@pi.edu.co</field>
+            <field name="email">prueba.estudiante2@pi.edu.co</field>
+            <field name="password">Oddo123456</field>
+            <field name="tz">America/Bogota</field>
+            <field name="groups_id" eval="[(6, 0, [ref('group_campus_student')])]"/>
+        </record>
+    </data>
+</odoo>

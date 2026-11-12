@@ -1,0 +1,22 @@
+# Prueba local idéntica a Render (Docker Desktop):  docker compose up --build
+# Luego abra http://localhost:8069/campus/login
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: campus
+    volumes: [pgdata:/var/lib/postgresql/data]
+  web:
+    build: .
+    depends_on: [db]
+    ports: ["8069:8069"]
+    environment:
+      DATABASE_URL: postgresql://odoo:odoo@db:5432/campus?sslmode=disable
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ODOO_MASTER_PASSWORD: local-master
+      ODOO_ADMIN_PASSWORD: local-admin
+      ODOO_UPDATE: "1"
+volumes:
+  pgdata:

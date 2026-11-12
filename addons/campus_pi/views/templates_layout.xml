@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Layout base del campus (sin dependencia del módulo website) -->
+    <template id="layout" name="Campus layout">
+        <html lang="es">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <title><t t-esc="title or 'InnobaTech Lab · Politécnico Internacional'"/></title>
+                <link rel="icon" href="/campus_pi/static/src/img/escudo_pi.png"/>
+                <link rel="preconnect" href="https://fonts.googleapis.com"/>
+                <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+                <t t-call-assets="campus_pi.assets_campus" t-js="false"/>
+                <t t-call-assets="campus_pi.assets_campus" t-css="false"/>
+            </head>
+            <body t-attf-class="cp-body #{body_class or ''}">
+                <header class="cp-topbar" t-if="not hide_nav">
+                    <a href="/campus" class="cp-brand">
+                        <img src="/campus_pi/static/src/img/escudo_pi.png" alt="Escudo Politécnico Internacional"/>
+                        <span><b>InnobaTech Lab</b><small>Politécnico Internacional</small></span>
+                    </a>
+                    <nav class="cp-nav">
+                        <a href="/campus">Inicio</a>
+                        <t t-if="role == 'student'"><a href="/campus#mis-cursos">Mis cursos</a></t>
+                        <t t-if="role == 'admin'">
+                            <a href="/campus/admin/crear-curso">Crear curso con IA</a>
+                            <a href="/campus/admin/cursos">Cursos</a>
+                        </t>
+                        <t t-if="role in ('admin', 'teacher')"><a href="/web#action=campus_pi.action_course">Configurar (Odoo)</a></t>
+                        <a href="/campus/valor">¿Por qué no Moodle?</a>
+                    </nav>
+                    <div class="cp-user">
+                        <span class="cp-avatar" t-esc="(user.name or '?')[:1]"/>
+                        <span class="cp-user-name"><t t-esc="user.name"/><small t-esc="{'admin': 'Administrador', 'teacher': 'Docente', 'student': 'Estudiante'}.get(role, '')"/></span>
+                        <a href="/campus/salir" class="cp-btn cp-btn-ghost cp-btn-sm">Salir</a>
+                    </div>
+                </header>
+                <main class="cp-main">
+                    <t t-out="0"/>
+                </main>
+                <footer class="cp-footer" t-if="not hide_nav">
+                    Politécnico Internacional · <i>Toda una experiencia</i> · InnobaTech Lab — Plataforma de innovación tecnológica y laboratorio de capacitación
+                    <span t-if="not ai_enabled" class="cp-pill cp-pill-warn">Agente IA en modo sin API key</span>
+                </footer>
+            </body>
+        </html>
+    </template>
+
+    <!-- Encabezado y menú de curso (Lecciones | Simulador | Tutoría virtual | Tutor IA) -->
+    <template id="course_header" name="Course header">
+        <section class="cp-course-hero" t-attf-style="--accent: #{course.color or '#160B8B'}">
+            <div class="cp-course-hero-in">
+                <a href="/campus" class="cp-crumb">← Mis cursos</a>
+                <h1><span t-esc="course.icon"/> <t t-esc="course.name"/></h1>
+                <p t-esc="course.subtitle"/>
+                <div class="cp-hero-meta">
+                    <span t-if="course.certification_id" class="cp-pill">🏅 <t t-esc="course.certification_id.provider"/> · <t t-esc="course.certification_id.exam_code"/></span>
+                    <span class="cp-pill"><t t-esc="course.hours"/> h</span>
+                    <span class="cp-pill" t-esc="dict(course._fields['modality'].selection).get(course.modality)"/>
+                    <span class="cp-pill" t-if="course.date_start">📅 <t t-esc="course.date_start"/> → <t t-esc="course.date_end"/></span>
+                </div>
+                <div t-if="enrollment" class="cp-progress cp-progress-light">
+                    <div t-attf-style="width: #{enrollment.progress}%"/>
+                    <span><t t-esc="int(enrollment.progress)"/> % completado</span>
+                </div>
+            </div>
+        </section>
+        <nav class="cp-tabs">
+            <a t-attf-href="/campus/curso/#{course.id}" t-att-class="'active' if tab == 'lessons' else ''">📚 Lecciones</a>
+            <a t-attf-href="/campus/curso/#{course.id}/simulador" t-att-class="'active' if tab == 'sim' else ''">🎯 Simulador de certificación</a>
+            <a t-attf-href="/campus/curso/#{course.id}/tutoria" t-att-class="'active' if tab == 'tutor' else ''">👩‍🏫 Agendar tutoría virtual</a>
+            <a t-attf-href="/campus/curso/#{course.id}/tutor-ia" t-att-class="'active' if tab == 'ai' else ''">🤖 Tutoría con IA</a>
+        </nav>
+    </template>
+</odoo>

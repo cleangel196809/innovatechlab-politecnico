@@ -1,0 +1,4 @@
+.git
+docs
+*.md
+**/__pycache__

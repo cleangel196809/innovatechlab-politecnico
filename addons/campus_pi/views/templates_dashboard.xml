@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================ ESTUDIANTE ============================ -->
+    <template id="dashboard_student" name="Dashboard estudiante">
+        <t t-call="campus_pi.layout">
+            <section class="cp-hero">
+                <div>
+                    <p class="cp-eyebrow">Panel del estudiante</p>
+                    <h1>¡Hola, <t t-esc="user.name.split(' ')[0]"/>! 👋</h1>
+                    <p>Bienvenido(a) a tu laboratorio de certificaciones. Continúa donde quedaste, practica en el simulador y pide ayuda a tu tutor IA cuando la necesites.</p>
+                </div>
+                <div class="cp-hero-stats">
+                    <div><b t-esc="len(enrollments)"/><span>cursos</span></div>
+                    <div><b t-esc="len(enrollments.filtered('badge_id'))"/><span>microcredenciales</span></div>
+                    <div><b t-esc="int(sum(enrollments.mapped('progress')) / len(enrollments)) if enrollments else 0"/><span>% avance</span></div>
+                </div>
+            </section>
+
+            <h2 class="cp-section-title" id="mis-cursos">📚 Mis cursos</h2>
+            <div t-if="not enrollments" class="cp-empty">Aún no estás inscrito en ningún curso. Comunícate con la coordinación.</div>
+            <div class="cp-grid">
+                <t t-foreach="enrollments" t-as="e">
+                    <t t-set="c" t-value="e.course_id"/>
+                    <a t-attf-href="/campus/curso/#{c.id}" class="cp-course-card" t-attf-style="--accent: #{c.color or '#160B8B'}">
+                        <div class="cp-course-cover"><span t-esc="c.icon"/></div>
+                        <div class="cp-course-body">
+                            <h3 t-esc="c.name"/>
+                            <p class="cp-muted" t-esc="c.subtitle"/>
+                            <div class="cp-progress"><div t-attf-style="width: #{e.progress}%"/></div>
+                            <div class="cp-card-foot">
+                                <span><t t-esc="int(e.progress)"/> % completado</span>
+                                <span t-if="e.best_score">🎯 <t t-esc="int(e.best_score)"/> %</span>
+                                <span t-if="e.badge_id" class="cp-pill cp-pill-ok">🏅 Microcredencial</span>
+                            </div>
+                        </div>
+                    </a>
+                </t>
+            </div>
+
+            <t t-set="badges" t-value="enrollments.mapped('badge_id')"/>
+            <t t-if="badges">
+                <h2 class="cp-section-title">🏅 Mis microcredenciales</h2>
+                <div class="cp-grid">
+                    <div t-foreach="badges" t-as="b" class="cp-card cp-badge-card">
+                        <h3 t-esc="b.course_id.name"/>
+                        <p class="cp-muted">Código <b t-esc="b.code"/> · <t t-esc="b.date"/></p>
+                        <a t-attf-href="/campus/credencial/#{b.id}/pdf" class="cp-btn cp-btn-primary cp-btn-sm">Descargar PDF</a>
+                        <a t-attf-href="/campus/verificar/#{b.code}" class="cp-btn cp-btn-ghost cp-btn-sm">Enlace de verificación</a>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- ============================== DOCENTE ============================== -->
+    <template id="dashboard_teacher" name="Dashboard docente">
+        <t t-call="campus_pi.layout">
+            <section class="cp-hero">
+                <div>
+                    <p class="cp-eyebrow">Panel docente</p>
+                    <h1>¡Hola, profe <t t-esc="user.name.split(' ')[0]"/>!</h1>
+                    <p>Tus cursos, las sesiones próximas, las tutorías por confirmar y los estudiantes que necesitan acompañamiento.</p>
+                </div>
+            </section>
+            <div class="cp-cols">
+                <div>
+                    <h2 class="cp-section-title">📚 Cursos a cargo</h2>
+                    <div t-foreach="courses" t-as="c" class="cp-card">
+                        <h3><span t-esc="c.icon"/> <a t-attf-href="/campus/curso/#{c.id}" t-esc="c.name"/></h3>
+                        <p class="cp-muted"><t t-esc="c.student_count"/> estudiantes · <t t-esc="c.lesson_count"/> lecciones · <t t-esc="c.question_count"/> preguntas en el simulador</p>
+                        <table class="cp-table">
+                            <tr><th>Estudiante</th><th>Avance</th><th>Mejor simulación</th><th>Estado</th></tr>
+                            <tr t-foreach="c.enrollment_ids" t-as="e">
+                                <t t-set="passing" t-value="c.certification_id.passing_score or 70"/>
+                                <td t-esc="e.user_id.name"/>
+                                <td><div class="cp-progress cp-progress-sm"><div t-attf-style="width: #{e.progress}%"/></div> <t t-esc="int(e.progress)"/> %</td>
+                                <td t-att-class="'cp-bad' if e.best_score and e.best_score &lt; passing else ''"><t t-esc="int(e.best_score)"/> %</td>
+                                <td>
+                                    <span t-if="e.badge_id" class="cp-pill cp-pill-ok">Certificado</span>
+                                    <span t-elif="e.progress &lt; 30" class="cp-pill cp-pill-warn">En riesgo</span>
+                                    <span t-else="" class="cp-pill">Activo</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="cp-section-title">🗓️ Próximas sesiones</h2>
+                    <div class="cp-card">
+                        <div t-if="not sessions" class="cp-muted">Sin sesiones en las próximas 3 semanas.</div>
+                        <div t-foreach="sessions" t-as="s" class="cp-agenda-item">
+                            <b t-esc="s.session_datetime" t-options="{'widget': 'datetime', 'format': 'EEE d MMM, h:mm a'}"/>
+                            <span t-esc="s.name"/>
+                            <small class="cp-muted"><t t-esc="s.course_id.name"/> · <t t-esc="s.section_id.name"/></small>
+                        </div>
+                    </div>
+                    <h2 class="cp-section-title">👩‍🏫 Tutorías solicitadas</h2>
+                    <div class="cp-card">
+                        <div t-if="not tutorings" class="cp-muted">No hay tutorías pendientes.</div>
+                        <form t-foreach="tutorings" t-as="t" method="post" t-attf-action="/campus/tutoria/#{t.id}/gestionar" class="cp-agenda-item">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <b t-esc="t.datetime" t-options="{'widget': 'datetime', 'format': 'EEE d MMM, h:mm a'}"/>
+                            <span><t t-esc="t.student_id.name"/> — <t t-esc="t.name"/></span>
+                            <small class="cp-muted" t-esc="t.notes"/>
+                            <input type="url" name="meeting_url" t-att-value="t.meeting_url" placeholder="Enlace Meet / Teams"/>
+                            <div class="cp-row">
+                                <button t-if="t.state == 'requested'" name="action" value="confirmed" class="cp-btn cp-btn-primary cp-btn-sm">Confirmar</button>
+                                <button t-if="t.state == 'confirmed'" name="action" value="done" class="cp-btn cp-btn-primary cp-btn-sm">Realizada</button>
+                                <button name="action" value="cancel" class="cp-btn cp-btn-ghost cp-btn-sm">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================ ADMINISTRADOR ============================ -->
+    <template id="dashboard_admin" name="Dashboard administrador">
+        <t t-call="campus_pi.layout">
+            <section class="cp-hero">
+                <div>
+                    <p class="cp-eyebrow">Panel de administración</p>
+                    <h1>Hola, <t t-esc="user.name.split(' ')[0]"/>. Centro de control del campus</h1>
+                    <p>Crea cursos con el agente IA a partir del syllabus, inscribe estudiantes, programa fechas y configura los modelos de curso virtual y presencial asistido por IA.</p>
+                </div>
+                <div class="cp-hero-stats">
+                    <div><b t-esc="stats['courses']"/><span>cursos</span></div>
+                    <div><b t-esc="stats['students']"/><span>estudiantes</span></div>
+                    <div><b t-esc="stats['badges']"/><span>microcredenciales</span></div>
+                </div>
+            </section>
+
+            <div class="cp-kpis">
+                <div class="cp-kpi"><b t-esc="stats['enrollments']"/><span>Inscripciones</span></div>
+                <div class="cp-kpi"><b t-esc="stats['attempts']"/><span>Simulacros presentados</span></div>
+                <div class="cp-kpi"><b t-esc="stats['ai_msgs']"/><span>Respuestas del tutor IA</span></div>
+                <div class="cp-kpi"><b t-esc="stats['tutorings']"/><span>Tutorías activas</span></div>
+                <div t-attf-class="cp-kpi #{'cp-kpi-ok' if ai_enabled else 'cp-kpi-warn'}"><b t-esc="'Activo' if ai_enabled else 'Sin API key'"/><span>Agente IA (Claude)</span></div>
+            </div>
+
+            <h2 class="cp-section-title">Módulos</h2>
+            <div class="cp-modules">
+                <a href="/campus/admin/crear-curso" class="cp-module cp-module-feature">
+                    <span class="cp-module-ico">🤖</span><h3>Crear curso con el agente IA</h3>
+                    <p>Carga el syllabus PI-GA-FT-141, elige la certificación y el agente arma núcleos, lecciones, sesiones virtuales y presenciales, y el banco del simulador.</p>
+                </a>
+                <a href="/campus/admin/cursos" class="cp-module"><span class="cp-module-ico">🗓️</span><h3>Cursos, fechas e inscripciones</h3><p>Programa fechas, publica cursos, anexa estudiantes y crea cuentas.</p></a>
+                <a href="/web#action=campus_pi.action_course" class="cp-module"><span class="cp-module-ico">🧩</span><h3>Modelos de curso</h3><p>Edita núcleos, lecciones, guiones del agente y recursos (backend Odoo).</p></a>
+                <a href="/web#action=campus_pi.action_sessions" class="cp-module"><span class="cp-module-ico">🏫</span><h3>Sesiones virtuales y presenciales</h3><p>Calendario de encuentros sincrónicos y laboratorios asistidos por IA.</p></a>
+                <a href="/web#action=campus_pi.action_cert" class="cp-module"><span class="cp-module-ico">🏅</span><h3>Certificaciones internacionales</h3><p>Microsoft, Oracle, OpenEDG, IBM: dominios, pesos y puntaje mínimo.</p></a>
+                <a href="/web#action=campus_pi.action_question" class="cp-module"><span class="cp-module-ico">🎯</span><h3>Banco del simulador</h3><p>Preguntas por dominio; importa GIFT desde Moodle o genera con IA.</p></a>
+                <a href="/web#action=campus_pi.action_tutoring" class="cp-module"><span class="cp-module-ico">👩‍🏫</span><h3>Tutorías</h3><p>Agenda de tutorías con docente y con el agente IA.</p></a>
+                <a href="/web#action=campus_pi.action_attempt" class="cp-module"><span class="cp-module-ico">📊</span><h3>Analítica</h3><p>Resultados del simulador, avance y riesgo por estudiante.</p></a>
+                <a href="/web#action=campus_pi.action_campus_settings" class="cp-module"><span class="cp-module-ico">⚙️</span><h3>Configuración IA</h3><p>API key y modelo de Claude.</p></a>
+                <a href="/campus/valor" class="cp-module cp-module-alt"><span class="cp-module-ico">💡</span><h3>Valor diferencial vs. Moodle</h3><p>Argumentario para directivos y docentes.</p></a>
+            </div>
+
+            <h2 class="cp-section-title">Cursos</h2>
+            <div class="cp-grid">
+                <a t-foreach="courses" t-as="c" t-attf-href="/campus/curso/#{c.id}" class="cp-course-card" t-attf-style="--accent: #{c.color or '#160B8B'}">
+                    <div class="cp-course-cover"><span t-esc="c.icon"/></div>
+                    <div class="cp-course-body">
+                        <h3 t-esc="c.name"/>
+                        <p class="cp-muted"><t t-esc="c.student_count"/> estudiantes · <t t-esc="dict(c._fields['state'].selection).get(c.state)"/></p>
+                    </div>
+                </a>
+            </div>
+        </t>
+    </template>
+
+    <template id="no_role" name="Sin rol">
+        <t t-call="campus_pi.layout">
+            <div class="cp-empty">Tu usuario no tiene un rol asignado en el campus. Solicita al administrador el rol de Estudiante, Docente o Administrador.</div>
+        </t>
+    </template>
+</odoo>

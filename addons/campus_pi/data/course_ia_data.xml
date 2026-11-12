@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data noupdate="1">
+<record id="course_ia" model="campus.course">
+<field name="name">Inteligencia Artificial Aplicada y Agentes de IA</field>
+<field name="code">PI-IA-01</field>
+<field name="subtitle">Ruta hacia Microsoft Azure AI Fundamentals (AI-901) · referente IBM AI Engineering</field>
+<field name="color">#0B5ED7</field>
+<field name="icon">🤖</field>
+<field name="skills">Machine learning, Python, deep learning, visión por computador, PLN, IA generativa, LLM, prompt engineering, RAG, agentes, IA responsable, Microsoft Foundry</field>
+<field name="level">intermedio</field>
+<field name="reference_model">IBM AI Engineering Professional Certificate (Coursera, 13 cursos) + temario Microsoft AI-901</field>
+<field name="hours">144</field>
+<field name="state">published</field>
+<field name="date_start" eval="(DateTime.today() - relativedelta(days=7)).strftime('%Y-%m-%d')"/>
+<field name="date_end" eval="(DateTime.today() + relativedelta(weeks=10)).strftime('%Y-%m-%d')"/>
+<field name="certification_id" ref="cert_ai901"/>
+<field name="teacher_ids" eval="[(6, 0, [ref('user_docente_prueba'), ref('user_gustavo')])]"/>
+<field name="description"><![CDATA[<p>Microcertificación inspirada en la ruta <b>IBM AI Engineering</b> de Coursera y alineada con el examen <b>Microsoft AI-901 (Azure AI Fundamentals)</b>. Aprenderás desde machine learning con Python hasta construir <b>agentes de IA con RAG</b>, siempre con criterios de IA responsable.</p><p>144 horas · proyecto integrador: <b>“Asistente IA para una MiPyme”</b>.</p>]]></field>
+<field name="outcomes"><![CDATA[<ul><li>Explica conceptos y capacidades de la IA (ML, visión, PLN, IA generativa) y sus riesgos (IA responsable).</li><li>Entrena y evalúa modelos de machine learning con Python.</li><li>Diseña soluciones con LLM, prompt engineering y RAG.</li><li>Implementa un agente de IA en Microsoft Foundry u otra plataforma y lo evalúa.</li></ul>]]></field>
+</record>
+<record id="course_ia_s0" model="campus.section">
+<field name="course_id" ref="course_ia"/><field name="sequence">0</field>
+<field name="name">Inicio</field>
+<field name="objective">Bienvenida, semblanza del docente, guía del estudiante, syllabus y diagnóstico inicial.</field>
+<field name="date_start" eval="(DateTime.today() + relativedelta(days=-7)).strftime('%Y-%m-%d')"/>
+<field name="date_end" eval="(DateTime.today() + relativedelta(days=4)).strftime('%Y-%m-%d')"/>
+</record>
+<record id="course_ia_s0_l0" model="campus.lesson">
+<field name="section_id" ref="course_ia_s0"/><field name="sequence">0</field>
+<field name="name">Video de bienvenida</field>
+<field name="lesson_type">video</field>
+<field name="duration_min">10</field>
+<field name="summary">Presentación del curso y de la ruta hacia la certificación.</field>
+<field name="content"><![CDATA[<p>Presentación del curso y de la ruta hacia la certificación.</p>]]></field>
+</record>
+<record id="course_ia_s0_l1" model="campus.lesson">
+<field name="section_id" ref="course_ia_s0"/><field name="sequence">1</field>
+<field name="name">Guía del estudiante</field>
+<field name="lesson_type">lectura</field>
+<field name="duration_min">20</field>
+<field name="summary">Cómo funciona el curso, cronograma y evaluación.</field>
+<field name="content"><![CDATA[<p>Cómo funciona el curso, cronograma y evaluación.</p>]]></field>
+</record>
+<record id="course_ia_s0_l2" model="campus.lesson">
+<field name="section_id" ref="course_ia_s0"/><field name="sequence">2</field>
+<field name="name">Ruta de certificación internacional</field>
+<field name="lesson_type">lectura</field>
+<field name="duration_min">15</field>
+<field name="summary">Qué examen presentarás, cómo se registra y cómo te prepara el simulador.</field>
+<field name="content"><![CDATA[<p>Qué examen presentarás, cómo se registra y cómo te prepara el simulador.</p>]]></field>
+</record>
+<record id="course_ia_s0_l3" model="campus.lesson">
+<field name="section_id" ref="course_ia_s0"/><field name="sequence">3</field>
+<field name="name">Cuestionario diagnóstico inicial</field>
+<field name="lesson_type">quiz</field>
+<field name="duration_min">20</field>
+<field name="summary">Mide tus saberes previos; el tutor IA lo usa para personalizar tu ruta.</field>
+<field name="content"><![CDATA[<p>Mide tus saberes previos; el tutor IA lo usa para personalizar tu ruta.</p>]]></field>
+</record>
+<record id="course_ia_s1" model="campus.section">
+<field name="course_id" ref="course_ia"/><field name="sequence">1</field>
+<field name="name">Núcleo 1 – Fundamentos de IA y machine learning</field>
+<field name="objective">Identificar cargas de trabajo de IA, principios de IA responsable y entrenar modelos supervisados con Python.</field>
+<field name="date_start" eval="(DateTime.today() + relativedelta(days=5)).strftime('%Y-%m-%d')"/>
+<field name="date_end" eval="(DateTime.today() + relativedelta(days=16)).strftime('%Y-%m-%d')"/>
+</record>
+<record id="course_ia_s1_l0" model="campus.lesson">
+<field name="section_id" ref="course_ia_s1"/><field name="sequence">0</field>
+<field name="name">Lectura: Fundamentos de IA y machine learning</field>
+<field name="lesson_type">lectura</field>
+<field name="duration_min">60</field>
+<field name="summary">Lectura de apropiación de conceptos.</field>
+<field name="content"><![CDATA[<h4>¿Qué es la IA?</h4><p>Sistemas que realizan tareas que requieren inteligencia humana: predecir, clasificar, ver, entender lenguaje y generar contenido.</p><h4>Tipos de aprendizaje</h4><ul><li><b>Supervisado:</b> regresión (predecir un número) y clasificación (predecir una categoría).</li><li><b>No supervisado:</b> agrupamiento (clustering).</li><li><b>Por refuerzo:</b> un agente aprende con recompensas.</li></ul><h4>Ciclo de un modelo</h4><p>Datos → división entrenamiento/validación → entrenamiento → evaluación (MAE, exactitud, precisión, recall, F1) → despliegue → monitoreo.</p><h4>IA responsable (Microsoft)</h4><ul><li>Equidad</li><li>Confiabilidad y seguridad</li><li>Privacidad y seguridad</li><li>Inclusión</li><li>Transparencia</li><li>Responsabilidad</li></ul>]]></field>
+</record>
+<record id="course_ia_s1_l1" model="campus.lesson">
+<field name="section_id" ref="course_ia_s1"/><field name="sequence">1</field>
+<field name="name">Presentación interactiva</field>
+<field name="lesson_type">presentacion</field>
+<field name="duration_min">30</field>
+<field name="summary">Recorrido visual por los conceptos clave del núcleo.</field>
+<field name="content"><![CDATA[<p>Recorrido visual por los conceptos clave del núcleo.</p>]]></field>
+</record>
+<record id="course_ia_s1_l2" model="campus.lesson">
+<field name="section_id" ref="course_ia_s1"/><field name="sequence">2</field>
+<field name="name">Infografía del núcleo</field>
+<field name="lesson_type">infografia</field>
+<field name="duration_min">10</field>
+<field name="summary">Síntesis gráfica del núcleo.</field>
+<field name="content"><![CDATA[<p>Síntesis gráfica del núcleo.</p>]]></field>
+</record>
+<record id="course_ia_s1_l3" model="campus.lesson">
+<field name="section_id" ref="course_ia_s1"/><field name="sequence">3</field>
+<field name="name">Laboratorio: ML con Python</field>
+<field name="lesson_type">laboratorio</field>
+<field name="duration_min">120</field>
+<field name="summary">Notebook con pandas y scikit-learn.</field>
+<field name="resource_url">https://colab.research.google.com/</field>
+<field name="content"><![CDATA[<p>Notebook con pandas y scikit-learn.</p>]]></field>
+</record>
+<record id="course_ia_s1_l4" model="campus.lesson">
+<field name="section_id" ref="course_ia_s1"/><field name="sequence">4</field>
+<field name="name">Sesión sincrónica virtual</field>
+<field name="lesson_type">sesion_virtual</field>
+<field name="duration_min">90</field>
+<field name="summary">Encuentro sincrónico con el docente.</field>
+<field name="session_datetime" eval="(DateTime.today().replace(hour=0, minute=0, second=0) + relativedelta(days=7, hours=24)).strftime('%Y-%m-%d %H:%M:%S')"/>
+<field name="meeting_url">https://meet.google.com/</field>
+<field name="content"><![CDATA[<p>Encuentro sincrónico con el docente.</p>]]></field>
+<field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>tipos de aprendizaje y métricas</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Entrenar un modelo de regresión para predecir ventas de una MiPyme con scikit-learn. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
+</record>
+<record id="course_ia_s1_l5" model="campus.lesson">
+<field name="section_id" ref="course_ia_s1"/><field name="sequence">5</field>
+<field name="name">Sesión presencial asistida por IA</field>
+<field name="lesson_type">sesion_presencial</field>
+<field name="duration_min">120</field>
+<field name="summary">Laboratorio presencial con el agente IA como co-tutor.</field>
+<field name="session_datetime" eval="(DateTime.today().replace(hour=0, minute=0, second=0) + relativedelta(days=10, hours=13)).strftime('%Y-%m-%d %H:%M:%S')"/>
+<field name="location">Laboratorio de Innovación – Sede Politécnico Internacional</field>
+<field name="content"><![CDATA[<p>Laboratorio presencial con el agente IA como co-tutor.</p>]]></field>
+<field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>tipos de aprendizaje y métricas</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Entrenar un modelo de regresión para predecir ventas de una MiPyme con scikit-learn. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
+</record>
+<record id="course_ia_s1_l6" model="campus.lesson">
+<field name="section_id" ref="course_ia_s1"/><field name="sequence">6</field>
+<field name="name">Cuestionario del núcleo</field>
+<field name="lesson_type">quiz</field>
+<field name="duration_min">30</field>
+<field name="summary">Cuestionario con calificación automática y retroalimentación por opción.</field>
+<field name="content"><![CDATA[<p>Cuestionario con calificación automática y retroalimentación por opción.</p>]]></field>
+</record>
+<record id="course_ia_s2" model="campus.section">
+<field name="course_id" ref="course_ia"/><field name="sequence">2</field>
+<field name="name">Núcleo 2 – Deep learning y visión por computador</field>
+<field name="objective">Comprender redes neuronales y aplicar visión por computador (clasificación, detección, OCR).</field>
+<field name="date_start" eval="(DateTime.today() + relativedelta(days=17)).strftime('%Y-%m-%d')"/>
+<field name="date_end" eval="(DateTime.today() + relativedelta(days=28)).strftime('%Y-%m-%d')"/>
+</record>
+<record id="course_ia_s2_l0" model="campus.lesson">
+<field name="section_id" ref="course_ia_s2"/><field name="sequence">0</field>
+<field name="name">Lectura: Deep learning y visión por computador</field>
+<field name="lesson_type">lectura</field>
+<field name="duration_min">60</field>
+<field name="summary">Lectura de apropiación de conceptos.</field>
+<field name="content"><![CDATA[<h4>Redes neuronales</h4><p>Capas de neuronas que aprenden pesos con retropropagación. Redes convolucionales (CNN) para imágenes; transformers para texto e imágenes.</p><h4>Tareas de visión</h4><ul><li>Clasificación de imágenes</li><li>Detección de objetos</li><li>Segmentación</li><li>OCR: extraer texto de facturas o documentos</li><li>Análisis facial (con restricciones de uso responsable)</li></ul><h4>Herramientas</h4><p>Keras/TensorFlow y PyTorch (ruta IBM); servicios de visión en Microsoft Foundry (ruta AI-901).</p>]]></field>
+</record>
+<record id="course_ia_s2_l1" model="campus.lesson">
+<field name="section_id" ref="course_ia_s2"/><field name="sequence">1</field>
+<field name="name">Presentación interactiva</field>
+<field name="lesson_type">presentacion</field>
+<field name="duration_min">30</field>
+<field name="summary">Recorrido visual por los conceptos clave del núcleo.</field>
+<field name="content"><![CDATA[<p>Recorrido visual por los conceptos clave del núcleo.</p>]]></field>
+</record>
+<record id="course_ia_s2_l2" model="campus.lesson">
+<field name="section_id" ref="course_ia_s2"/><field name="sequence">2</field>
+<field name="name">Infografía del núcleo</field>
+<field name="lesson_type">infografia</field>
+<field name="duration_min">10</field>
+<field name="summary">Síntesis gráfica del núcleo.</field>
+<field name="content"><![CDATA[<p>Síntesis gráfica del núcleo.</p>]]></field>
+</record>
+<record id="course_ia_s2_l3" model="campus.lesson">
+<field name="section_id" ref="course_ia_s2"/><field name="sequence">3</field>
+<field name="name">Sesión sincrónica virtual</field>
+<field name="lesson_type">sesion_virtual</field>
+<field name="duration_min">90</field>
+<field name="summary">Encuentro sincrónico con el docente.</field>
+<field name="session_datetime" eval="(DateTime.today().replace(hour=0, minute=0, second=0) + relativedelta(days=19, hours=24)).strftime('%Y-%m-%d %H:%M:%S')"/>
+<field name="meeting_url">https://meet.google.com/</field>
+<field name="content"><![CDATA[<p>Encuentro sincrónico con el docente.</p>]]></field>
+<field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>redes neuronales y visión</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Clasificar imágenes de productos con un modelo preentrenado. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
+</record>
+<record id="course_ia_s2_l4" model="campus.lesson">
+<field name="section_id" ref="course_ia_s2"/><field name="sequence">4</field>
+<field name="name">Sesión presencial asistida por IA</field>
+<field name="lesson_type">sesion_presencial</field>
+<field name="duration_min">120</field>
+<field name="summary">Laboratorio presencial con el agente IA como co-tutor.</field>
+<field name="session_datetime" eval="(DateTime.today().replace(hour=0, minute=0, second=0) + relativedelta(days=22, hours=13)).strftime('%Y-%m-%d %H:%M:%S')"/>
+<field name="location">Laboratorio de Innovación – Sede Politécnico Internacional</field>
+<field name="content"><![CDATA[<p>Laboratorio presencial con el agente IA como co-tutor.</p>]]></field>
+<field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>redes neuronales y visión</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Clasificar imágenes de productos con un modelo preentrenado. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
+</record>
+<record id="course_ia_s2_l5" model="campus.lesson">
+<field name="section_id" ref="course_ia_s2"/><field name="sequence">5</field>
+<field name="name">Cuestionario del núcleo</field>
+<field name="lesson_type">quiz</field>
+<field name="duration_min">30</field>
+<field name="summary">Cuestionario con calificación automática y retroalimentación por opción.</field>
+<field name="content"><![CDATA[<p>Cuestionario con calificación automática y retroalimentación por opción.</p>]]></field>
+</record>
+<record id="course_ia_s3" model="campus.section">
+<field name="course_id" ref="course_ia"/><field name="sequence">3</field>
+<field name="name">Núcleo 3 – PLN, IA generativa y LLM</field>
+<field name="objective">Aplicar procesamiento de lenguaje natural, modelos de lenguaje grandes y prompt engineering.</field>
+<field name="date_start" eval="(DateTime.today() + relativedelta(days=29)).strftime('%Y-%m-%d')"/>
+<field name="date_end" eval="(DateTime.today() + relativedelta(days=40)).strftime('%Y-%m-%d')"/>
+</record>
+<record id="course_ia_s3_l0" model="campus.lesson">
+<field name="section_id" ref="course_ia_s3"/><field name="sequence">0</field>
+<field name="name">Lectura: PLN, IA generativa y LLM</field>
+<field name="lesson_type">lectura</field>
+<field name="duration_min">60</field>
+<field name="summary">Lectura de apropiación de conceptos.</field>
+<field name="content"><![CDATA[<h4>PLN clásico</h4><p>Análisis de sentimiento, extracción de entidades, traducción, voz a texto y texto a voz.</p><h4>IA generativa</h4><p>Los LLM predicen el siguiente token a partir de enormes corpus. Conceptos clave: tokens, ventana de contexto, temperatura, alucinaciones, embeddings.</p><h4>Prompt engineering</h4><ul><li>Rol y objetivo claros</li><li>Contexto y restricciones</li><li>Ejemplos (few-shot)</li><li>Formato de salida (JSON, tabla)</li><li>Verificación y fuentes</li></ul><h4>Fine-tuning vs. RAG</h4><p>Fine-tuning ajusta pesos; RAG recupera documentos y los pone en el contexto: más barato y actualizable.</p>]]></field>
+</record>
+<record id="course_ia_s3_l1" model="campus.lesson">
+<field name="section_id" ref="course_ia_s3"/><field name="sequence">1</field>
+<field name="name">Presentación interactiva</field>
+<field name="lesson_type">presentacion</field>
+<field name="duration_min">30</field>
+<field name="summary">Recorrido visual por los conceptos clave del núcleo.</field>
+<field name="content"><![CDATA[<p>Recorrido visual por los conceptos clave del núcleo.</p>]]></field>
+</record>
+<record id="course_ia_s3_l2" model="campus.lesson">
+<field name="section_id" ref="course_ia_s3"/><field name="sequence">2</field>
+<field name="name">Infografía del núcleo</field>
+<field name="lesson_type">infografia</field>
+<field name="duration_min">10</field>
+<field name="summary">Síntesis gráfica del núcleo.</field>
+<field name="content"><![CDATA[<p>Síntesis gráfica del núcleo.</p>]]></field>
+</record>
+<record id="course_ia_s3_l3" model="campus.lesson">
+<field name="section_id" ref="course_ia_s3"/><field name="sequence">3</field>
+<field name="name">Sesión sincrónica virtual</field>
+<field name="lesson_type">sesion_virtual</field>
+<field name="duration_min">90</field>
+<field name="summary">Encuentro sincrónico con el docente.</field>
+<field name="session_datetime" eval="(DateTime.today().replace(hour=0, minute=0, second=0) + relativedelta(days=31, hours=24)).strftime('%Y-%m-%d %H:%M:%S')"/>
+<field name="meeting_url">https://meet.google.com/</field>
+<field name="content"><![CDATA[<p>Encuentro sincrónico con el docente.</p>]]></field>
+<field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>LLM y prompt engineering</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Diseñar prompts con rol, contexto, formato y ejemplos para un chatbot de atención al cliente. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
+</record>
+<record id="course_ia_s3_l4" model="campus.lesson">
+<field name="section_id" ref="course_ia_s3"/><field name="sequence">4</field>
+<field name="name">Sesión presencial asistida por IA</field>
+<field name="lesson_type">sesion_presencial</field>
+<field name="duration_min">120</field>
+<field name="summary">Laboratorio presencial con el agente IA como co-tutor.</field>
+<field name="session_datetime" eval="(DateTime.today().replace(hour=0, minute=0, second=0) + relativedelta(days=34, hours=13)).strftime('%Y-%m-%d %H:%M:%S')"/>
+<field name="location">Laboratorio de Innovación – Sede Politécnico Internacional</field>
+<field name="content"><![CDATA[<p>Laboratorio presencial con el agente IA como co-tutor.</p>]]></field>
+<field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>LLM y prompt engineering</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Diseñar prompts con rol, contexto, formato y ejemplos para un chatbot de atención al cliente. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
+</record>
+<record id="course_ia_s3_l5" model="campus.lesson">
+<field name="section_id" ref="course_ia_s3"/><field name="sequence">5</field>
+<field name="name">Cuestionario del núcleo</field>
+<field name="lesson_type">quiz</field>
+<field name="duration_min">30</field>
+<field name="summary">Cuestionario con calificación automática y retroalimentación por opción.</field>
+<field name="content"><![CDATA[<p>Cuestionario con calificación automática y retroalimentación por opción.</p>]]></field>
+</record>
+<record id="course_ia_s4" model="campus.section">
+<field name="course_id" ref="course_ia"/><field name="sequence">4</field>
+<field name="name">Núcleo 4 – Agentes de IA, RAG e implementación en Microsoft Foundry</field>
+<field name="objective">Construir y evaluar un agente con RAG y herramientas, aplicando IA responsable.</field>
+<field name="date_start" eval="(DateTime.today() + relativedelta(days=41)).strftime('%Y-%m-%d')"/>
+<field name="date_end" eval="(DateTime.today() + relativedelta(days=52)).strftime('%Y-%m-%d')"/>
+</record>
+<record id="course_ia_s4_l0" model="campus.lesson">
+<field name="section_id" ref="course_ia_s4"/><field name="sequence">0</field>
+<field name="name">Lectura: Agentes de IA y RAG</field>
+<field name="lesson_type">lectura</field>
+<field name="duration_min">60</field>
+<field name="summary">Lectura de apropiación de conceptos.</field>
+<field name="content"><![CDATA[<h4>¿Qué es un agente?</h4><p>Un LLM que razona, decide y usa <b>herramientas</b> (búsqueda, bases de datos, APIs) en un ciclo hasta cumplir un objetivo.</p><h4>RAG paso a paso</h4><ol><li>Dividir documentos en fragmentos</li><li>Calcular embeddings y guardarlos en una base vectorial</li><li>Recuperar los fragmentos más similares a la pregunta</li><li>Generar la respuesta citando las fuentes</li></ol><h4>Microsoft Foundry</h4><p>Catálogo de modelos, playground, agentes, evaluación y filtros de contenido. Es el 55-60 % del examen AI-901.</p><h4>Evaluación</h4><p>Relevancia, fundamentación (groundedness), coherencia y seguridad.</p>]]></field>
+</record>
+<record id="course_ia_s4_l1" model="campus.lesson">
+<field name="section_id" ref="course_ia_s4"/><field name="sequence">1</field>
+<field name="name">Presentación interactiva</field>
+<field name="lesson_type">presentacion</field>
+<field name="duration_min">30</field>
+<field name="summary">Recorrido visual por los conceptos clave del núcleo.</field>
+<field name="content"><![CDATA[<p>Recorrido visual por los conceptos clave del núcleo.</p>]]></field>
+</record>
+<record id="course_ia_s4_l2" model="campus.lesson">
+<field name="section_id" ref="course_ia_s4"/><field name="sequence">2</field>
+<field name="name">Infografía del núcleo</field>
+<field name="lesson_type">infografia</field>
+<field name="duration_min">10</field>
+<field name="summary">Síntesis gráfica del núcleo.</field>
+<field name="content"><![CDATA[<p>Síntesis gráfica del núcleo.</p>]]></field>
+</record>
+<record id="course_ia_s4_l3" model="campus.lesson">
+<field name="section_id" ref="course_ia_s4"/><field name="sequence">3</field>
+<field name="name">Proyecto integrador: Asistente IA para una MiPyme</field>
+<field name="lesson_type">caso</field>
+<field name="duration_min">300</field>
+<field name="summary">Agente con RAG que atiende clientes de una microempresa colombiana; se evalúa con rúbrica.</field>
+<field name="content"><![CDATA[<p>Agente con RAG que atiende clientes de una microempresa colombiana; se evalúa con rúbrica.</p>]]></field>
+</record>
+<record id="course_ia_s4_l4" model="campus.lesson">
+<field name="section_id" ref="course_ia_s4"/><field name="sequence">4</field>
+<field name="name">Sesión sincrónica virtual</field>
+<field name="lesson_type">sesion_virtual</field>
+<field name="duration_min">90</field>
+<field name="summary">Encuentro sincrónico con el docente.</field>
+<field name="session_datetime" eval="(DateTime.today().replace(hour=0, minute=0, second=0) + relativedelta(days=43, hours=24)).strftime('%Y-%m-%d %H:%M:%S')"/>
+<field name="meeting_url">https://meet.google.com/</field>
+<field name="content"><![CDATA[<p>Encuentro sincrónico con el docente.</p>]]></field>
+<field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>agentes, herramientas y RAG</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Construir un agente que responda preguntas sobre el reglamento estudiantil con RAG. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
+</record>
+<record id="course_ia_s4_l5" model="campus.lesson">
+<field name="section_id" ref="course_ia_s4"/><field name="sequence">5</field>
+<field name="name">Sesión presencial asistida por IA</field>
+<field name="lesson_type">sesion_presencial</field>
+<field name="duration_min">120</field>
+<field name="summary">Laboratorio presencial con el agente IA como co-tutor.</field>
+<field name="session_datetime" eval="(DateTime.today().replace(hour=0, minute=0, second=0) + relativedelta(days=46, hours=13)).strftime('%Y-%m-%d %H:%M:%S')"/>
+<field name="location">Laboratorio de Innovación – Sede Politécnico Internacional</field>
+<field name="content"><![CDATA[<p>Laboratorio presencial con el agente IA como co-tutor.</p>]]></field>
+<field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>agentes, herramientas y RAG</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Construir un agente que responda preguntas sobre el reglamento estudiantil con RAG. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
+</record>
+<record id="course_ia_s4_l6" model="campus.lesson">
+<field name="section_id" ref="course_ia_s4"/><field name="sequence">6</field>
+<field name="name">Cuestionario del núcleo</field>
+<field name="lesson_type">quiz</field>
+<field name="duration_min">30</field>
+<field name="summary">Cuestionario con calificación automática y retroalimentación por opción.</field>
+<field name="content"><![CDATA[<p>Cuestionario con calificación automática y retroalimentación por opción.</p>]]></field>
+</record>
+<record id="course_ia_s5" model="campus.section">
+<field name="course_id" ref="course_ia"/><field name="sequence">5</field>
+<field name="name">Cierre</field>
+<field name="objective">Autoevaluación, diagnóstico final, simulacro completo y emisión de la microcredencial.</field>
+<field name="date_start" eval="(DateTime.today() + relativedelta(days=53)).strftime('%Y-%m-%d')"/>
+<field name="date_end" eval="(DateTime.today() + relativedelta(days=64)).strftime('%Y-%m-%d')"/>
+</record>
+<record id="course_ia_s5_l0" model="campus.lesson">
+<field name="section_id" ref="course_ia_s5"/><field name="sequence">0</field>
+<field name="name">Autoevaluación</field>
+<field name="lesson_type">actividad</field>
+<field name="duration_min">20</field>
+<field name="summary">Reflexión guiada sobre tu proceso y logros.</field>
+<field name="content"><![CDATA[<p>Reflexión guiada sobre tu proceso y logros.</p>]]></field>
+</record>
+<record id="course_ia_s5_l1" model="campus.lesson">
+<field name="section_id" ref="course_ia_s5"/><field name="sequence">1</field>
+<field name="name">Simulacro completo de certificación</field>
+<field name="lesson_type">quiz</field>
+<field name="duration_min">60</field>
+<field name="summary">Presenta el simulador en condiciones reales de tiempo. Necesitas el puntaje mínimo para tu microcredencial.</field>
+<field name="content"><![CDATA[<p>Presenta el simulador en condiciones reales de tiempo. Necesitas el puntaje mínimo para tu microcredencial.</p>]]></field>
+</record>
+<record id="course_ia_s5_l2" model="campus.lesson">
+<field name="section_id" ref="course_ia_s5"/><field name="sequence">2</field>
+<field name="name">Sesión de cierre y plan de examen</field>
+<field name="lesson_type">sesion_virtual</field>
+<field name="duration_min">60</field>
+<field name="summary">Plan personal para presentar el examen oficial.</field>
+<field name="session_datetime" eval="(DateTime.today().replace(hour=0, minute=0, second=0) + relativedelta(days=55, hours=24)).strftime('%Y-%m-%d %H:%M:%S')"/>
+<field name="meeting_url">https://meet.google.com/</field>
+<field name="content"><![CDATA[<p>Plan personal para presentar el examen oficial.</p>]]></field>
+<field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>la preparación final del examen</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Cada estudiante arma su plan de 2 semanas con base en sus dominios débiles. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
+</record>
+</data>
+</odoo>

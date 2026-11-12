@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inscripciones -->
+    <record id="view_enrollment_tree" model="ir.ui.view">
+        <field name="name">campus.enrollment.tree</field>
+        <field name="model">campus.enrollment</field>
+        <field name="arch" type="xml">
+            <tree editable="bottom">
+                <field name="course_id"/><field name="user_id"/><field name="date"/>
+                <field name="progress" widget="progressbar"/><field name="best_score"/>
+                <field name="state" widget="badge"/><field name="badge_id"/>
+            </tree>
+        </field>
+    </record>
+    <record id="action_enrollment" model="ir.actions.act_window">
+        <field name="name">Inscripciones</field>
+        <field name="res_model">campus.enrollment</field>
+        <field name="view_mode">tree,pivot,graph</field>
+    </record>
+
+    <!-- Tutorías -->
+    <record id="view_tutoring_tree" model="ir.ui.view">
+        <field name="name">campus.tutoring.tree</field>
+        <field name="model">campus.tutoring</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="datetime"/><field name="kind"/><field name="course_id"/>
+                <field name="student_id"/><field name="teacher_id"/><field name="name"/>
+                <field name="state" widget="badge"/>
+            </tree>
+        </field>
+    </record>
+    <record id="view_tutoring_form" model="ir.ui.view">
+        <field name="name">campus.tutoring.form</field>
+        <field name="model">campus.tutoring</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm" type="object" string="Confirmar" class="btn-primary" invisible="state != 'requested'"/>
+                    <button name="action_done" type="object" string="Marcar realizada" invisible="state != 'confirmed'"/>
+                    <button name="action_cancel" type="object" string="Cancelar" invisible="state in ('done', 'cancel')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="requested,confirmed,done"/>
+                </header>
+                <sheet>
+                    <h1><field name="name"/></h1>
+                    <group>
+                        <group><field name="kind"/><field name="course_id"/><field name="student_id"/><field name="teacher_id"/></group>
+                        <group><field name="datetime"/><field name="duration_min"/><field name="meeting_url" widget="url"/></group>
+                    </group>
+                    <group><field name="notes"/></group>
+                    <separator string="Plan preparado por el agente IA"/>
+                    <field name="ai_plan"/>
+                </sheet>
+                <div class="oe_chatter"><field name="message_follower_ids"/><field name="message_ids"/></div>
+            </form>
+        </field>
+    </record>
+    <record id="view_tutoring_calendar" model="ir.ui.view">
+        <field name="name">campus.tutoring.calendar</field>
+        <field name="model">campus.tutoring</field>
+        <field name="arch" type="xml">
+            <calendar date_start="datetime" color="kind" mode="week" string="Tutorías">
+                <field name="name"/><field name="student_id"/>
+            </calendar>
+        </field>
+    </record>
+    <record id="action_tutoring" model="ir.actions.act_window">
+        <field name="name">Tutorías</field>
+        <field name="res_model">campus.tutoring</field>
+        <field name="view_mode">calendar,tree,form</field>
+    </record>
+
+    <!-- Intentos de simulador -->
+    <record id="view_attempt_tree" model="ir.ui.view">
+        <field name="name">campus.sim.attempt.tree</field>
+        <field name="model">campus.sim.attempt</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="date_start"/><field name="course_id"/><field name="user_id"/>
+                <field name="score"/><field name="passed"/><field name="state"/>
+            </tree>
+        </field>
+    </record>
+    <record id="action_attempt" model="ir.actions.act_window">
+        <field name="name">Resultados del simulador</field>
+        <field name="res_model">campus.sim.attempt</field>
+        <field name="view_mode">tree,pivot,graph</field>
+    </record>
+
+    <!-- Microcredenciales -->
+    <record id="view_badge_tree" model="ir.ui.view">
+        <field name="name">campus.badge.tree</field>
+        <field name="model">campus.badge</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="code"/><field name="user_id"/><field name="course_id"/>
+                <field name="certification_id"/><field name="date"/><field name="score"/>
+            </tree>
+        </field>
+    </record>
+    <record id="action_badge" model="ir.actions.act_window">
+        <field name="name">Microcredenciales emitidas</field>
+        <field name="res_model">campus.badge</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Conversaciones del tutor IA (auditoría pedagógica) -->
+    <record id="view_aimsg_tree" model="ir.ui.view">
+        <field name="name">campus.ai.message.tree</field>
+        <field name="model">campus.ai.message</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="create_date"/><field name="course_id"/><field name="user_id"/>
+                <field name="role"/><field name="content"/>
+            </tree>
+        </field>
+    </record>
+    <record id="action_aimsg" model="ir.actions.act_window">
+        <field name="name">Conversaciones con el tutor IA</field>
+        <field name="res_model">campus.ai.message</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

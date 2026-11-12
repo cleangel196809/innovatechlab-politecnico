@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Estudiante 1: IA + Backend · Estudiante 2: Backend + Front-End -->
+        <record id="enr_e1_ia" model="campus.enrollment">
+            <field name="course_id" ref="course_ia"/><field name="user_id" ref="user_estudiante1"/>
+        </record>
+        <record id="enr_e1_be" model="campus.enrollment">
+            <field name="course_id" ref="course_backend"/><field name="user_id" ref="user_estudiante1"/>
+        </record>
+        <record id="enr_e2_be" model="campus.enrollment">
+            <field name="course_id" ref="course_backend"/><field name="user_id" ref="user_estudiante2"/>
+        </record>
+        <record id="enr_e2_fe" model="campus.enrollment">
+            <field name="course_id" ref="course_frontend"/><field name="user_id" ref="user_estudiante2"/>
+        </record>
+    </data>
+</odoo>

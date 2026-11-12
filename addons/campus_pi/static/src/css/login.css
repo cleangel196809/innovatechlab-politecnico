@@ -1,0 +1,7 @@
+/* Marca PI en /web/login */
+body:has(.cp-weblogin-brand) {
+  background: linear-gradient(135deg, #070342 0%, #160B8B 50%, #1D2FA8 100%) !important;
+}
+body:has(.cp-weblogin-brand) .card {
+  border-radius: 18px;
+}

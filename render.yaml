@@ -1,0 +1,21 @@
+# Blueprint de Render: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: innobatechlab-campus
+    runtime: docker
+    plan: free            # para un piloto real con estudiantes use "starter"
+    region: virginia      # cerca de Bogotá y de Neon us-east-1
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /web/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL          # cadena de conexión DIRECTA de Neon
+        sync: false
+      - key: ANTHROPIC_API_KEY     # https://console.anthropic.com
+        sync: false
+      - key: ODOO_MASTER_PASSWORD  # clave maestra de Odoo
+        generateValue: true
+      - key: ODOO_ADMIN_PASSWORD   # clave del usuario técnico "admin"
+        generateValue: true
+      - key: ODOO_UPDATE           # 1 = actualizar el módulo al desplegar
+        value: "1"
