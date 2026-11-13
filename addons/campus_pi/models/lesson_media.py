@@ -170,6 +170,20 @@ class CampusLessonMedia(models.Model):
         """Datos para la infografía generada del núcleo."""
         self.ensure_one()
         sec = self.section_id
+        gen = self.infographic_json if isinstance(self.infographic_json, dict) else {}
+        if gen.get("puntos"):
+            cert = sec.course_id.certification_id
+            return {
+                "title": gen.get("titulo") or sec.name, "objective": gen.get("objetivo") or sec.objective or "",
+                "key_fact": gen.get("dato_clave") or "",
+                "points": [{"title": str(p.get("title") or "")[:90], "text": str(p.get("text") or "")[:260]}
+                           for p in gen["puntos"][:MAX_POINTS] if isinstance(p, dict) and p.get("title")],
+                "route": [{"name": l.name, "type": l.lesson_type, "min": l.duration_min}
+                          for l in sec.lesson_ids if l.id != self.id],
+                "minutes": sum(sec.lesson_ids.mapped("duration_min")),
+                "cert": cert and "%s · %s" % (cert.provider or "", cert.exam_code or cert.name) or "",
+                "domains": cert.domain_ids.mapped("name")[:6] if cert else [],
+            }
         blocks = [b for b in self._key_blocks() if b["title"]] or self._key_blocks()
         points = []
         for b in blocks[:MAX_POINTS]:
@@ -179,6 +193,7 @@ class CampusLessonMedia(models.Model):
                  for l in sec.lesson_ids if l.id != self.id]
         cert = sec.course_id.certification_id
         return {
+            "key_fact": "",
             "title": sec.name, "objective": sec.objective or self.summary or "",
             "points": points, "route": route,
             "minutes": sum(sec.lesson_ids.mapped("duration_min")),
@@ -189,6 +204,8 @@ class CampusLessonMedia(models.Model):
     def slides(self):
         """Diapositivas generadas: portada, una por bloque de contenido y cierre."""
         self.ensure_one()
+        if isinstance(self.slides_json, list) and self.slides_json:
+            return self.slides_json
         sec = self.section_id
         course = sec.course_id
         is_intro = not self._section_text_lessons()
@@ -224,7 +241,7 @@ class CampusLessonMedia(models.Model):
         return re.sub(r"\s+", " ", txt).strip()
 
     def youtube_search_url(self):
-        q = "%s %s" % (self.summary or self.name, self.section_id.course_id.name)
+        q = self.video_query or "%s %s" % (self.summary or self.name, self.section_id.course_id.name)
         return "https://www.youtube.com/results?search_query=" + re.sub(r"\s+", "+", q.strip())
 
     # ------------------------------------------------------- cuestionarios
@@ -232,6 +249,9 @@ class CampusLessonMedia(models.Model):
         """Preguntas de práctica del banco del curso (estables por lección)."""
         self.ensure_one()
         qs = self.course_id.question_ids.filtered(lambda q: len(q.option_ids) >= 2)
+        own = qs.filtered(lambda q: q.section_id == self.section_id)
+        if len(own) >= 3:
+            qs = own
         if not qs:
             return qs
         ids = sorted(qs.ids)

@@ -10,6 +10,7 @@ class CampusQuestion(models.Model):
     _order = "course_id, domain, id"
 
     course_id = fields.Many2one("campus.course", required=True, ondelete="cascade", index=True)
+    section_id = fields.Many2one("campus.section", "Núcleo", ondelete="set null")
     domain = fields.Char("Dominio de la certificación", default="General")
     name = fields.Text("Enunciado", required=True)
     explanation = fields.Text("Explicación (retroalimentación)")
@@ -17,7 +18,7 @@ class CampusQuestion(models.Model):
     source = fields.Selection(
         [("manual", "Manual"), ("gift", "Importada GIFT"), ("ai", "Generada por agente IA")],
         default="manual", string="Origen")
-    option_ids = fields.One2many("campus.question.option", "question_id", "Opciones")
+    option_ids = fields.One2many("campus.question.option", "question_id", "Opciones", copy=True)
     active = fields.Boolean(default=True)
 
 

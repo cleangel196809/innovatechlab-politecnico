@@ -32,6 +32,58 @@ DEFAULT_MODEL = "claude-sonnet-4-5"
 W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 
 
+def call_messages(conf, system, messages, max_tokens=2000, temperature=0.4, tools=None, timeout=300):
+    """Llama a la API de mensajes de Anthropic. Devuelve (texto, fuentes, stop_reason).
+
+    Con ``tools`` (p. ej. búsqueda web del servidor) continúa los turnos en pausa
+    (``pause_turn``) y recoge las URL consultadas y citadas como fuentes.
+    No usa el ORM: puede ejecutarse en hilos paralelos."""
+
+    key = conf.get("key")
+    if not key:
+        raise UserError("No hay API key de Anthropic configurada.")
+    payload = {"model": conf.get("model") or DEFAULT_MODEL, "max_tokens": max_tokens, "system": system,
+               "messages": list(messages)}
+    if tools:
+        payload["tools"] = tools
+    else:
+        payload["temperature"] = temperature
+    texts, sources, stop = [], [], None
+    for _turn in range(5):
+        try:
+            resp = requests.post(
+                conf.get("url") or API_URL, json=payload, timeout=timeout,
+                headers={"x-api-key": key, "anthropic-version": "2023-06-01",
+                         "content-type": "application/json"})
+        except requests.RequestException as e:
+            raise UserError("No fue posible contactar al proveedor de IA: %s" % e)
+        if resp.status_code >= 400:
+            _logger.error("Anthropic API %s: %s", resp.status_code, resp.text[:500])
+            raise UserError("Error del proveedor de IA (%s): %s" % (resp.status_code, resp.text[:300]))
+        data = resp.json()
+        stop = data.get("stop_reason")
+        for b in data.get("content", []):
+            if b.get("type") == "text":
+                texts.append(b.get("text", ""))
+                for c in b.get("citations") or []:
+                    if c.get("url"):
+                        sources.append({"title": c.get("title") or c["url"], "url": c["url"]})
+            elif b.get("type") == "web_search_tool_result" and isinstance(b.get("content"), list):
+                for r in b["content"]:
+                    if r.get("url"):
+                        sources.append({"title": r.get("title") or r["url"], "url": r["url"],
+                                        "searched": True})
+        if stop != "pause_turn":
+            break
+        payload["messages"] = payload["messages"] + [{"role": "assistant", "content": data.get("content", [])}]
+    seen, uniq = set(), []
+    for src in sources:
+        if src["url"] not in seen:
+            seen.add(src["url"])
+            uniq.append(src)
+    return "".join(texts), uniq, stop
+
+
 class CampusAiAgent(models.AbstractModel):
     _name = "campus.ai.agent"
     _description = "Agentes de IA del campus"
@@ -48,33 +100,40 @@ class CampusAiAgent(models.AbstractModel):
         return self._api_key().strip().startswith("sk-ant-")
 
     @api.model
+    def _api_url(self):
+        return (os.environ.get("CAMPUS_ANTHROPIC_URL")
+                or self.env["ir.config_parameter"].sudo().get_param("campus_pi.anthropic_url") or API_URL)
+
+    @api.model
+    def _model(self):
+        return (self.env["ir.config_parameter"].sudo().get_param("campus_pi.claude_model") or DEFAULT_MODEL)
+
+    @api.model
+    def _llm_conf(self):
+        """Configuración para llamar al modelo sin tocar la base de datos (apto para hilos)."""
+        return {"key": self._api_key(), "url": self._api_url(), "model": self._model()}
+
+    @api.model
+    def _messages(self, system, messages, max_tokens=2000, temperature=0.4, tools=None, timeout=300):
+        return call_messages(self._llm_conf(), system, messages, max_tokens, temperature, tools, timeout)
+
+    @api.model
     def _call(self, system, messages, max_tokens=2000, temperature=0.4):
-        key = self._api_key()
-        if not key:
-            raise UserError(_("No hay API key de Anthropic configurada."))
-        model = (self.env["ir.config_parameter"].sudo().get_param("campus_pi.claude_model")
-                 or DEFAULT_MODEL)
-        resp = requests.post(
-            API_URL,
-            headers={"x-api-key": key, "anthropic-version": "2023-06-01",
-                     "content-type": "application/json"},
-            json={"model": model, "max_tokens": max_tokens, "temperature": temperature,
-                  "system": system, "messages": messages},
-            timeout=120,
-        )
-        if resp.status_code >= 400:
-            _logger.error("Anthropic API %s: %s", resp.status_code, resp.text[:500])
-            raise UserError(_("Error del proveedor de IA (%s): %s") % (resp.status_code, resp.text[:300]))
-        data = resp.json()
-        return "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+        return self._messages(system, messages, max_tokens=max_tokens, temperature=temperature)[0]
 
     @api.model
     def _json(self, text):
-        text = text.strip()
+        text = (text or "").strip()
         text = re.sub(r"^```(?:json)?|```$", "", text, flags=re.M).strip()
         start = min([i for i in (text.find("{"), text.find("[")) if i >= 0] or [0])
         end = max(text.rfind("}"), text.rfind("]"))
-        return json.loads(text[start:end + 1])
+        chunk = text[start:end + 1]
+        try:
+            return json.loads(chunk)
+        except ValueError:
+            # Las comas finales son el error más común del modelo
+            fixed = re.sub(r",\s*([}\]])", r"\1", chunk)
+            return json.loads(fixed)
 
     # ------------------------------------------------------- texto syllabus
     @api.model
@@ -121,124 +180,154 @@ Escribes en español de Colombia, claro y profesional. Respondes SOLO con JSON v
 
     @api.model
     def generate_course(self, vals):
-        """vals: name, syllabus_text, certification_id, date_start, date_end, modality,
-        teacher_ids, student_ids, syllabus_file, syllabus_filename, instructions"""
-        cert = self.env["campus.certification"].browse(vals.get("certification_id") or [])
-        if self.is_enabled():
-            data, log = self._generate_with_llm(vals, cert), "Generado con Claude a partir del syllabus."
-        else:
-            data, log = self._generate_heuristic(vals, cert), (
-                "Modo sin IA: estructura generada por reglas a partir del syllabus. "
-                "Configure ANTHROPIC_API_KEY para contenido completo.")
-        return self._create_course(data, vals, cert, log)
-
-    def _generate_with_llm(self, vals, cert):
-        cert_txt = "Ninguna"
-        if cert:
-            cert_txt = "%s (%s, examen %s). Dominios: %s" % (
-                cert.name, cert.provider, cert.exam_code or "-",
-                "; ".join("%s %s%%" % (d.name, d.weight) for d in cert.domain_ids))
-        prompt = (
-            "Nombre sugerido del curso: %s\nModalidad: %s\nCertificación internacional objetivo: %s\n"
-            "Instrucciones del administrador: %s\n\nGenera 3 a 5 lecciones por núcleo, contenido_html de "
-            "150-300 palabras por lección (con subtítulos <h4> y listas), y 12 preguntas de opción múltiple "
-            "tipo caso para el simulador, distribuidas según los dominios de la certificación.\n"
-            "Esquema JSON exacto:\n%s\n\nSYLLABUS:\n%s"
-        ) % (vals.get("name") or "", vals.get("modality") or "virtual", cert_txt,
-             vals.get("instructions") or "-", self.COURSE_SCHEMA, (vals.get("syllabus_text") or "")[:60000])
-        text = self._call(self.COURSE_SYSTEM, [{"role": "user", "content": prompt}], max_tokens=16000)
-        return self._json(text)
-
-    def _generate_heuristic(self, vals, cert):
-        text = vals.get("syllabus_text") or ""
-        nucleos = []
-        for m in re.finditer(r"N[úu]cleo\s+(\d)\s*[–\-:]\s*([^\n.]{3,90})\.?\s*([^\n]{0,400})", text):
-            num = int(m.group(1))
-            if num not in [n[0] for n in nucleos]:
-                nucleos.append((num, m.group(2).strip(), m.group(3).strip()))
-        if not nucleos:
-            nucleos = [(i, "Unidad %s" % i, "") for i in range(1, 5)]
-        nucleos.sort()
-        desc = ""
-        m = re.search(r"DESCRIPCI[ÓO]N DEL CURSO\s*\n(.{50,1500}?)\n", text, re.S)
-        if m:
-            desc = m.group(1)
-        sections = [{"name": "Inicio", "objective": "Bienvenida, guía del estudiante y diagnóstico inicial.",
-                     "lessons": [
-                         {"name": "Video de bienvenida", "type": "video", "duration_min": 10},
-                         {"name": "Guía del estudiante y syllabus", "type": "lectura", "duration_min": 20},
-                         {"name": "Cuestionario diagnóstico inicial", "type": "quiz", "duration_min": 20}]}]
-        for num, title, obj in nucleos:
-            sections.append({"name": "Núcleo %s – %s" % (num, title), "objective": obj, "lessons": [
-                {"name": "Lectura: %s" % title, "type": "lectura", "duration_min": 45},
-                {"name": "Presentación interactiva", "type": "presentacion", "duration_min": 30},
-                {"name": "Infografía del núcleo", "type": "infografia", "duration_min": 10},
-                {"name": "Sesión sincrónica virtual", "type": "sesion_virtual", "duration_min": 90},
-                {"name": "Sesión presencial asistida por IA", "type": "sesion_presencial", "duration_min": 120},
-                {"name": "Cuestionario Núcleo %s" % num, "type": "quiz", "duration_min": 30}]})
-        sections.append({"name": "Cierre", "objective": "Autoevaluación, diagnóstico final y simulacro.",
-                         "lessons": [{"name": "Autoevaluación", "type": "actividad", "duration_min": 20},
-                                     {"name": "Simulacro de certificación", "type": "quiz", "duration_min": 60}]})
-        return {"name": vals.get("name"), "description_html": "<p>%s</p>" % html_escape(desc),
-                "sections": sections, "questions": []}
-
-    def _create_course(self, data, vals, cert, log):
-        d0 = fields.Date.to_date(vals.get("date_start")) or fields.Date.context_today(self)
-        d1 = fields.Date.to_date(vals.get("date_end")) or (d0 + timedelta(weeks=8))
-        sections = data.get("sections") or []
-        span = max((d1 - d0).days, len(sections) or 1)
-        step = span // max(len(sections), 1)
-        course = self.env["campus.course"].sudo().create({
-            "name": vals.get("name") or data.get("name") or "Curso",
-            "subtitle": data.get("subtitle"),
-            "description": data.get("description_html"),
-            "outcomes": data.get("outcomes_html"),
-            "skills": data.get("skills"),
-            "level": data.get("level") if data.get("level") in ("basico", "intermedio", "avanzado") else "intermedio",
-            "hours": data.get("hours") or 144,
-            "modality": vals.get("modality") or "virtual",
-            "date_start": d0, "date_end": d1,
-            "certification_id": cert.id or False,
-            "teacher_ids": [(6, 0, vals.get("teacher_ids") or [])],
-            "syllabus_file": vals.get("syllabus_file"),
-            "syllabus_filename": vals.get("syllabus_filename"),
-            "syllabus_text": (vals.get("syllabus_text") or "")[:100000],
-            "ai_generated": True, "ai_log": log, "state": "draft",
+        """Compatibilidad: ejecuta el agente por etapas de forma síncrona y devuelve el curso."""
+        job = self.env["campus.agent.job"].sudo().create({
+            "name": vals.get("name") or "Curso", "syllabus_file": vals.get("syllabus_file"),
+            "syllabus_filename": vals.get("syllabus_filename") or "syllabus.txt",
+            "certification_id": vals.get("certification_id") or False,
+            "deep_research": vals.get("deep_research", True),
+            "params": {k: v for k, v in vals.items() if k not in ("syllabus_file", "syllabus_text")},
         })
-        valid_types = dict(self.env["campus.lesson"]._fields["lesson_type"].selection)
-        for i, s in enumerate(sections):
-            s_start = d0 + timedelta(days=i * step)
-            sec = self.env["campus.section"].sudo().create({
-                "course_id": course.id, "sequence": i, "name": s.get("name") or "Sección %s" % i,
-                "objective": s.get("objective"), "date_start": s_start,
-                "date_end": min(s_start + timedelta(days=max(step - 1, 0)), d1)})
-            for j, ls in enumerate(s.get("lessons") or []):
-                ltype = ls.get("type") if ls.get("type") in valid_types else "lectura"
-                session_dt = False
-                if ltype == "sesion_virtual":   # 7:00 p. m. hora Colombia (UTC-5)
-                    session_dt = datetime.combine(s_start + timedelta(days=1), time(0, 0))
-                elif ltype == "sesion_presencial":  # sábado siguiente 8:00 a. m. Colombia
-                    sat = s_start + timedelta(days=(5 - s_start.weekday()) % 7)
-                    session_dt = datetime.combine(sat, time(13, 0))
-                self.env["campus.lesson"].sudo().create({
-                    "section_id": sec.id, "sequence": j, "name": ls.get("name") or "Lección",
-                    "lesson_type": ltype, "summary": ls.get("summary"),
-                    "duration_min": ls.get("duration_min") or 30,
-                    "content": ls.get("content_html") or "<p>Contenido pendiente: el docente puede "
-                               "completarlo o pedir al agente que lo redacte.</p>",
-                    "ai_guide": ls.get("ai_guide_html"), "session_datetime": session_dt})
-        self._create_questions(course, data.get("questions") or [])
-        if vals.get("student_ids"):
-            course.enroll_users(self.env["res.users"].browse(vals["student_ids"]))
-        return course
+        if not job.syllabus_file and vals.get("syllabus_text"):
+            job.write({"syllabus_file": base64.b64encode(vals["syllabus_text"].encode()),
+                       "syllabus_filename": "syllabus.txt"})
+        job.action_start(background=False)
+        if job.state == "error":
+            raise UserError(job.error)
+        return job.course_id
 
-    def _create_questions(self, course, questions, source="ai"):
+    STRUCTURE_SYSTEM = """Extraes la estructura de un syllabus institucional del Politécnico Internacional (formato
+PI-GA-FT-141) a partir de texto mal formateado (PDF o texto plano). No inventas: si un dato no aparece, déjalo vacío.
+Respondes SOLO con JSON válido."""
+
+    @api.model
+    def structure_syllabus(self, text):
+        prompt = ("Extrae del syllabus: asignatura, resultado de aprendizaje, competencias, producto, objetivos (3.4.x) y "
+                  "la tabla de ALINEACIÓN CURRICULAR: por núcleo su número, título, temas (lista), objetivo, "
+                  "estrategias (lista) y criterios de evaluación (lista); y la tabla de CRITERIOS DE EVALUACIÓN "
+                  "(cuándo e instrumento). Esquema: {\"asignatura\": str, \"resultado_aprendizaje\": str, "
+                  "\"competencias\": str, \"producto\": str, \"objetivos\": [str], \"nucleos\": [{\"numero\": int, "
+                  "\"titulo\": str, \"temas\": [str], \"objetivo\": str, \"estrategias\": [str], \"criterios\": [str]}], "
+                  "\"evaluacion\": [{\"cuando\": str, \"instrumento\": str, \"evidencia\": str}]}\n\nTEXTO:\n%s") % (text or "")[:60000]
+        data = self._json(self._call(self.STRUCTURE_SYSTEM, [{"role": "user", "content": prompt}], 6000, 0.0))
+        return data if isinstance(data, dict) else {}
+
+    # ------------------------------------------------- investigación web
+    RESEARCH_SYSTEM = """Eres el Agente Investigador de InnovaTech Lab (Politécnico Internacional, Colombia).
+Antes de diseñar un curso verificas en fuentes oficiales y actuales la información que el syllabus no garantiza:
+la certificación internacional pertinente (versión vigente, código, dominios y pesos, formato, precio),
+novedades 2025-2026 de cada núcleo y recursos abiertos de calidad (documentación oficial, estándares, cursos
+gratuitos; en español cuando existan). Usa la herramienta de búsqueda web; no inventes datos: si algo no se
+puede verificar, dilo en "advertencias". Respondes SOLO con JSON válido."""
+
+    @api.model
+    def research_course(self, syl, cert=None, instructions=None):
+        from ..tools import syllabus as syl_tools
+        from .agent_job import RESEARCH_SCHEMA
+        hint = ("La certificación elegida por el administrador es %s (%s %s). Verifica si sigue vigente o si hay "
+                "una versión más reciente." % (cert.name, cert.provider, cert.exam_code or "")) if cert else (
+                "Identifica la certificación internacional más pertinente para este syllabus (si el syllabus "
+                "nombra una, verifica esa).")
+        prompt = ("Fecha de hoy: %s.\n%s\nInstrucciones del administrador: %s\n\nSYLLABUS:\n%s\n\n"
+                  "Para cada núcleo (por número) da 2-4 novedades vigentes, 4-6 conceptos clave y 2-4 recursos "
+                  "con URL real. Esquema JSON exacto:\n%s") % (
+            fields.Date.today(), hint, instructions or "-", syl_tools.summary(syl, 9000), RESEARCH_SCHEMA)
+        tools = [{"type": "web_search_20250305", "name": "web_search", "max_uses": 10}]
+        text, sources, _stop = self._messages(self.RESEARCH_SYSTEM, [{"role": "user", "content": prompt}],
+                                              max_tokens=8000, tools=tools, timeout=420)
+        data = self._json(text)
+        if not isinstance(data, dict):
+            data = {}
+        data["_sources"] = sources
+        return data
+
+    # ----------------------------------------------- contenido por núcleo
+    NUCLEO_SYSTEM = """Eres el Agente de Diseño Instruccional de InnovaTech Lab del Politécnico Internacional (Colombia).
+Desarrollas el contenido completo de UN núcleo de un curso virtual a partir del syllabus institucional
+(PI-GA-FT-141), respetando su objetivo, temas, estrategias y criterios de evaluación, y alineándolo con la
+certificación internacional objetivo y con la investigación verificada que se te entrega. Escribes en español
+de Colombia, claro, riguroso y con ejemplos de organizaciones colombianas. Citas las fuentes de la investigación
+con enlaces <a href> en la lectura. Nunca inventas URL: usa solo las de la investigación o del syllabus.
+Respondes SOLO con JSON válido, sin texto adicional."""
+
+    @api.model
+    def nucleo_content_payload(self, summary, nuc, cert_info, research, instructions=None, conf=None):
+        """Genera el contenido de un núcleo. No usa la base de datos si se pasa ``conf``."""
+        from .agent_job import NUCLEO_SCHEMA
+        conf = conf or self._llm_conf()
+        rn = next((x for x in (research or {}).get("nucleos") or [] if x.get("numero") == nuc["numero"]), {})
+        cert_txt = "Ninguna"
+        if cert_info:
+            cert_txt = "%s (%s, %s). Dominios: %s" % (cert_info["name"], cert_info["provider"], cert_info["code"],
+                                                       "; ".join("%s %s%%" % d for d in cert_info["domains"]))
+        prompt = (
+            "NÚCLEO %s – %s\nObjetivo: %s\nTemas: %s\nEstrategias: %s\nCriterios de evaluación: %s\n\n"
+            "CERTIFICACIÓN: %s\nINVESTIGACIÓN VERIFICADA PARA ESTE NÚCLEO: %s\n"
+            "INSTRUCCIONES DEL ADMINISTRADOR: %s\n\nSYLLABUS COMPLETO (contexto):\n%s\n\n"
+            "Requisitos: lectura de 900-1300 palabras con <h4>, <ul>, ejemplos y una sección final «Fuentes» con "
+            "enlaces; presentación de 7-9 diapositivas (3-5 puntos cada una); infografía de 5-6 puntos; guion del "
+            "video de 3-5 minutos y una búsqueda de YouTube en español; actividad formativa; laboratorio práctico "
+            "con pasos (o null si el núcleo no lo admite); evaluación según los criterios del syllabus con "
+            "instrucciones, entregables y rúbrica en tabla (BUENO/REGULAR/INSUFICIENTE); agenda de la sesión "
+            "virtual de 90 min; guion del agente IA para la sesión presencial (diagnóstico, preguntas "
+            "detonantes, reto práctico, cierre); 6 preguntas tipo examen de opción múltiple (4 opciones, 1 "
+            "correcta, retroalimentación por opción) con el nombre exacto del dominio de la certificación.\n"
+            "Esquema JSON exacto:\n%s") % (
+            nuc["numero"], nuc["titulo"], nuc.get("objetivo") or "-", "; ".join(nuc.get("temas") or []) or "-",
+            "; ".join(nuc.get("estrategias") or []) or "-", " ".join(nuc.get("criterios") or []) or "-",
+            cert_txt, json.dumps(rn, ensure_ascii=False)[:5000] or "-", instructions or "-", summary[:9000],
+            NUCLEO_SCHEMA)
+        last = None
+        for attempt in range(2):
+            msgs = [{"role": "user", "content": prompt + (
+                "\n\nIMPORTANTE: la respuesta anterior no fue JSON válido o quedó incompleta; sé más conciso "
+                "(lectura de máximo 800 palabras)." if attempt else "")}]
+            text, _src, stop = call_messages(conf, self.NUCLEO_SYSTEM, msgs, max_tokens=16000, temperature=0.5,
+                                             timeout=600)
+            try:
+                data = self._json(text)
+                if isinstance(data, dict) and data.get("lectura"):
+                    return data
+            except ValueError as e:
+                last = e
+        raise UserError("Respuesta inválida del modelo para el núcleo %s (%s)" % (nuc["numero"], last))
+
+    # ------------------------------------------------- banco de preguntas
+    @api.model
+    def generate_bank(self, course, cert, syl, research, instructions=None):
+        """Amplía el banco del simulador con preguntas por dominio (proporcional al peso)."""
+        if not cert or not cert.domain_ids:
+            return 0
+        target = max(int((cert.num_questions or 20) * 1.5), 24)
+        have = len(course.question_ids)
+        missing = max(target - have, 0)
+        if not missing:
+            return 0
+        dist = ", ".join("%s: %d" % (d.name, max(1, round(missing * (d.weight or 0) / 100.0)))
+                         for d in cert.domain_ids)
+        prompt = ("Genera %d preguntas tipo examen %s (%s) para el curso «%s», distribuidas así por dominio: %s. "
+                  "Preguntas de escenario, 4 opciones, 1 correcta, retroalimentación por opción y explicación. "
+                  "Basadas en estos núcleos: %s.\nResponde SOLO un JSON: [{\"domain\": str (nombre exacto del "
+                  "dominio), \"question\": str, \"explanation\": str, \"options\": [{\"text\": str, "
+                  "\"correct\": bool, \"feedback\": str}]}]") % (
+            missing, cert.name, cert.exam_code or "", course.name, dist,
+            "; ".join("%s (%s)" % (n["titulo"], ", ".join(n.get("temas") or [])) for n in syl["nucleos"])[:4000])
+        data = self._json(self._call(self.NUCLEO_SYSTEM, [{"role": "user", "content": prompt}], 12000))
+        qs = data if isinstance(data, list) else data.get("questions", [])
+        before = len(course.question_ids)
+        self._create_questions(course, qs)
+        return len(course.question_ids) - before
+
+    def _create_questions(self, course, questions, source="ai", section=None):
         Q = self.env["campus.question"].sudo()
-        for q in questions:
-            opts = q.get("options") or []
-            if not q.get("question") or len(opts) < 2:
+        for q in questions or []:
+            if not isinstance(q, dict):
+                continue
+            opts = [o for o in q.get("options") or [] if isinstance(o, dict)]
+            if not q.get("question") or len(opts) < 2 or sum(1 for o in opts if o.get("correct")) != 1:
                 continue
             Q.create({"course_id": course.id, "domain": q.get("domain") or "General",
+                      "section_id": section.id if section else False,
                       "name": q["question"], "explanation": q.get("explanation"), "source": source,
                       "option_ids": [(0, 0, {"sequence": k, "name": o.get("text") or "-",
                                              "is_correct": bool(o.get("correct")),

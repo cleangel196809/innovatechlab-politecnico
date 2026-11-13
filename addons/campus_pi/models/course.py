@@ -64,6 +64,8 @@ class CampusCourse(models.Model):
     tutor_prompt = fields.Text(
         "Instrucciones del tutor IA",
         help="Personaliza el comportamiento del tutor IA en este curso.")
+    sources_html = fields.Html("Fuentes y referencias", sanitize_attributes=False)
+    agent_job_id = fields.Many2one("campus.agent.job", "Ejecución del agente", ondelete="set null")
     reference_model = fields.Char(
         "Modelo de referencia",
         help="Ej.: IBM AI Engineering (Coursera). Sirve como referente de estructura.")
@@ -132,6 +134,9 @@ class CampusLesson(models.Model):
     session_datetime = fields.Datetime("Fecha de la sesión")
     meeting_url = fields.Char("Enlace de la sesión (Meet/Teams)")
     location = fields.Char("Lugar (presencial)")
+    slides_json = fields.Json("Diapositivas generadas")
+    infographic_json = fields.Json("Infografía generada")
+    video_query = fields.Char("Búsqueda de video sugerida")
     ai_guide = fields.Html("Guion del agente IA",
                            help="Para sesiones presenciales/virtuales asistidas por IA: "
                                 "agenda, preguntas detonantes y retos que el agente propone.")
