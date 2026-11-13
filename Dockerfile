@@ -1,4 +1,4 @@
-# InnobaTech Lab · Campus PI — Odoo 17 Community para Render
+# InnovaTech Lab · Campus PI — Odoo 17 Community para Render
 FROM odoo:17.0
 
 USER root

@@ -1,4 +1,4 @@
-# InnobaTech Lab · Campus PI
+# InnovaTech Lab · Campus PI
 
 **Plataforma de innovación tecnológica y laboratorio de capacitación para obtener certificaciones internacionales** — Politécnico Internacional.
 
@@ -46,7 +46,7 @@ Módulo **Odoo 17 Community** (`addons/campus_pi`) con base de datos **PostgreSQ
 
 ### Paso 1 · Crear la base de datos gratuita en Neon
 1. Entre a <https://neon.tech> y cree una cuenta con GitHub.
-2. Haga clic en **New project**. Nombre: `innobatechlab`. Postgres 16. Región: **AWS US East (N. Virginia)**.
+2. Haga clic en **New project**. Nombre: `innovatechlab`. Postgres 16. Región: **AWS US East (N. Virginia)**.
 3. En **Connection details** desactive *Connection pooling* y copie la cadena **directa**:
    `postgresql://neondb_owner:XXXX@ep-xxxx.us-east-1.aws.neon.tech/neondb?sslmode=require`
 4. Guárdela: es su `DATABASE_URL`.
@@ -59,8 +59,8 @@ Módulo **Odoo 17 Community** (`addons/campus_pi`) con base de datos **PostgreSQ
 
 ### Paso 3 · Subir el código a GitHub
 ```bash
-git clone https://github.com/cleangel196809/innobatechlab-politecnico.git
-cd innobatechlab-politecnico
+git clone https://github.com/cleangel196809/innovatechlab-politecnico.git
+cd innovatechlab-politecnico
 # copie aquí el contenido de este proyecto (addons/, deploy/, Dockerfile, render.yaml, README.md)
 git add .
 git commit -m "Campus PI: módulo Odoo 17 con agentes IA"
@@ -69,7 +69,7 @@ git push origin main
 
 ### Paso 4 · Crear el servicio en Render
 1. Entre a <https://dashboard.render.com> con GitHub → **New** → **Blueprint**.
-2. Seleccione el repositorio `innobatechlab-politecnico`. Render detecta `render.yaml`.
+2. Seleccione el repositorio `innovatechlab-politecnico`. Render detecta `render.yaml`.
 3. Complete las variables:
    - `DATABASE_URL` = la cadena directa de Neon (paso 1)
    - `ANTHROPIC_API_KEY` = la clave del paso 2
@@ -91,7 +91,7 @@ git push origin main
 ## 3. Instalar en el Odoo 17 de su PC (sin Docker)
 1. Copie `addons/campus_pi` dentro de una carpeta incluida en `addons_path` de su `odoo.conf`.
 2. Reinicie Odoo con `-u base` o desde **Aplicaciones → Actualizar lista de aplicaciones**.
-3. Busque **InnobaTech Lab · Campus PI** e instálelo. Para el idioma: **Ajustes → Idiomas → Español (CO)**.
+3. Busque **InnovaTech Lab · Campus PI** e instálelo. Para el idioma: **Ajustes → Idiomas → Español (CO)**.
 4. Abra `http://localhost:8069/campus/login`.
 5. Opcional: defina la variable de entorno `ANTHROPIC_API_KEY` antes de arrancar Odoo, o póngala en **Campus PI → IA → Configuración**.
 
