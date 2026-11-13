@@ -84,5 +84,46 @@
         <record id="cert_jse_d2" model="campus.cert.domain"><field name="certification_id" ref="cert_jse"/><field name="name">CSS3 y diseño responsivo</field><field name="weight">20</field></record>
         <record id="cert_jse_d3" model="campus.cert.domain"><field name="certification_id" ref="cert_jse"/><field name="name">Variables, tipos y operadores JS</field><field name="weight">25</field></record>
         <record id="cert_jse_d4" model="campus.cert.domain"><field name="certification_id" ref="cert_jse"/><field name="name">Control de flujo, funciones y DOM</field><field name="weight">35</field></record>
+
+        <!-- ===================== CIBERSEGURIDAD (verificado 13-nov-2026) ===================== -->
+        <record id="cert_secplus_v8" model="campus.certification">
+            <field name="name">CompTIA Security+ V8</field>
+            <field name="provider">CompTIA</field>
+            <field name="exam_code">SY0-801</field>
+            <field name="url">https://www.comptia.org/en-us/certifications/security/v8/</field>
+            <field name="level">associate</field>
+            <field name="passing_score">80</field>
+            <field name="num_questions">45</field>
+            <field name="duration_min">45</field>
+            <field name="price_note">Voucher CompTIA (precio según país). Examen en Pearson VUE o en línea.</field>
+            <field name="color">#C8202F</field>
+            <field name="verify_note">Oficial: máximo 90 preguntas (opción múltiple y de desempeño), 90 min, aprobación 750 en escala 100-900. Lanzamiento previsto ~17-nov-2026, inicialmente en inglés; SY0-701 sigue disponible por un tiempo.</field>
+            <field name="description"><![CDATA[<p>Certificación de nivel inicial-intermedio en ciberseguridad (ISO 17024, ANAB). La V8 incorpora los riesgos del uso de inteligencia artificial.</p>]]></field>
+        </record>
+        <record id="cert_secplus_v8_d1" model="campus.cert.domain"><field name="certification_id" ref="cert_secplus_v8"/><field name="sequence">1</field><field name="name">Conceptos generales de seguridad</field><field name="weight">16</field></record>
+        <record id="cert_secplus_v8_d2" model="campus.cert.domain"><field name="certification_id" ref="cert_secplus_v8"/><field name="sequence">2</field><field name="name">Amenazas, vulnerabilidades y ataques</field><field name="weight">24</field></record>
+        <record id="cert_secplus_v8_d3" model="campus.cert.domain"><field name="certification_id" ref="cert_secplus_v8"/><field name="sequence">3</field><field name="name">Arquitectura de seguridad</field><field name="weight">19</field></record>
+        <record id="cert_secplus_v8_d4" model="campus.cert.domain"><field name="certification_id" ref="cert_secplus_v8"/><field name="sequence">4</field><field name="name">Operaciones de seguridad</field><field name="weight">27</field></record>
+        <record id="cert_secplus_v8_d5" model="campus.cert.domain"><field name="certification_id" ref="cert_secplus_v8"/><field name="sequence">5</field><field name="name">Gestión y supervisión del programa de seguridad</field><field name="weight">14</field></record>
+
+        <record id="cert_isc2_cc" model="campus.certification">
+            <field name="name">ISC2 Certified in Cybersecurity (CC)</field>
+            <field name="provider">ISC2</field>
+            <field name="exam_code">CC</field>
+            <field name="url">https://www.isc2.org/certifications/cc/cc-certification-exam-outline</field>
+            <field name="level">fundamental</field>
+            <field name="passing_score">70</field>
+            <field name="num_questions">50</field>
+            <field name="duration_min">60</field>
+            <field name="price_note">Examen USD 199 + cuota anual USD 50. Disponible en español.</field>
+            <field name="color">#0A7E3B</field>
+            <field name="verify_note">Temario vigente desde el 1-sep-2026. Examen adaptativo de 100-125 preguntas, 2 horas, aprobación 700/1000. El programa gratuito "One Million" cerró a nuevos inscritos el 20-may-2026.</field>
+            <field name="description"><![CDATA[<p>Certificación de nivel inicial: principios de seguridad, gobierno, identidad y accesos, redes y nube, operaciones y respuesta a incidentes.</p>]]></field>
+        </record>
+        <record id="cert_isc2_cc_d1" model="campus.cert.domain"><field name="certification_id" ref="cert_isc2_cc"/><field name="sequence">1</field><field name="name">Principios de seguridad</field><field name="weight">24</field></record>
+        <record id="cert_isc2_cc_d2" model="campus.cert.domain"><field name="certification_id" ref="cert_isc2_cc"/><field name="sequence">2</field><field name="name">Gobierno de la seguridad</field><field name="weight">17.3</field></record>
+        <record id="cert_isc2_cc_d3" model="campus.cert.domain"><field name="certification_id" ref="cert_isc2_cc"/><field name="sequence">3</field><field name="name">Gestión de identidades y accesos (IAM)</field><field name="weight">20</field></record>
+        <record id="cert_isc2_cc_d4" model="campus.cert.domain"><field name="certification_id" ref="cert_isc2_cc"/><field name="sequence">4</field><field name="name">Seguridad de redes y nube</field><field name="weight">21.3</field></record>
+        <record id="cert_isc2_cc_d5" model="campus.cert.domain"><field name="certification_id" ref="cert_isc2_cc"/><field name="sequence">5</field><field name="name">Operaciones de seguridad y respuesta a incidentes</field><field name="weight">17.4</field></record>
     </data>
 </odoo>
