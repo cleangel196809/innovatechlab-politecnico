@@ -46,6 +46,7 @@ class Campus(http.Controller):
     def _render(self, template, values=None):
         vals = {"user": request.env.user, "role": self._role(),
                 "ai_enabled": request.env["campus.ai.agent"].sudo().is_enabled(),
+                "ai_provider": request.env["campus.ai.agent"].sudo().provider_label(),
                 "now": fields.Datetime.now()}
         vals.update(values or {})
         return request.render(template, vals)
@@ -373,9 +374,12 @@ class Campus(http.Controller):
         sessions = request.env["campus.tutoring"].sudo().search([
             ("course_id", "=", course.id), ("kind", "=", "ia"),
             ("student_id", "=", request.env.user.id)], order="datetime desc")
+        staff = self._role() in ("admin", "teacher")
         return self._render("campus_pi.course_ai_tutor", {
             "course": course, "enrollment": enrollment, "history": history.sorted("id"),
-            "sessions": sessions, "tab": "ai", "prefill": kw.get("q", "")})
+            "sessions": sessions, "tab": "ai", "prefill": kw.get("q", ""), "staff": staff,
+            "insights": request.env["campus.ai.agent"].sudo().course_insights(course) if staff else None,
+            "ai_label": request.env["campus.ai.agent"].sudo().provider_label()})
 
     @http.route("/campus/curso/<int:course_id>/tutor-ia/mensaje", type="json", auth="user", sitemap=False)
     def ai_tutor_message(self, course_id, message="", **kw):
@@ -470,10 +474,61 @@ class Campus(http.Controller):
                 error = _("El agente no pudo iniciar: %s") % e
         return self._render("campus_pi.admin_create_course", {
             "jobs": env["campus.agent.job"].sudo().search([], limit=8),
+            "ai_label": env["campus.ai.agent"].sudo().provider_label(),
+            "ai_search": env["campus.ai.agent"].sudo().has_web_search(),
             "certs": env["campus.certification"].sudo().search([]),
             "teachers": env["res.users"].sudo().search([("groups_id", "in", env.ref("campus_pi.group_campus_teacher").id)]),
             "students": env["res.users"].sudo().search([("groups_id", "in", env.ref("campus_pi.group_campus_student").id)]),
             "error": error})
+
+    # ------------------------------------------------------ proveedor de IA
+    @http.route("/campus/admin/ia", type="http", auth="user", methods=["GET", "POST"], sitemap=False)
+    def admin_ai_settings(self, **kw):
+        redirect = self._require("admin")
+        if redirect:
+            return redirect
+        from ..tools import llm
+        agent = request.env["campus.ai.agent"].sudo()
+        ICP = request.env["ir.config_parameter"].sudo()
+        msg, test = None, None
+        if request.httprequest.method == "POST":
+            if kw.get("action") == "save":
+                ICP.set_param("campus_pi.ai_provider", kw.get("provider") if kw.get("provider") in llm.PROVIDERS else "")
+                for prov, (_env, param) in agent.KEY_PARAMS.items():
+                    val = (kw.get("key_%s" % prov) or "").strip()
+                    if kw.get("clear_%s" % prov):
+                        ICP.set_param(param, False)
+                    elif val:
+                        ICP.set_param(param, val)
+                ICP.set_param("campus_pi.ai_model", (kw.get("model") or "").strip() or False)
+                url = (kw.get("base_url") or "").strip()
+                ICP.set_param("campus_pi.ai_base_url", url if url.startswith("http") else False)
+                msg = "Configuración guardada."
+            elif kw.get("action") == "test":
+                if not agent.is_enabled():
+                    test = {"ok": False, "text": "No hay un proveedor con clave configurada."}
+                else:
+                    t0 = datetime.now()
+                    try:
+                        out = agent._call("Responde en español, en una sola frase.",
+                                          [{"role": "user", "content": "¿Qué es la confidencialidad en seguridad de la información?"}],
+                                          max_tokens=200)
+                        test = {"ok": bool(out.strip()), "text": out.strip()[:400],
+                                "secs": round((datetime.now() - t0).total_seconds(), 1)}
+                    except Exception as e:  # noqa: BLE001
+                        test = {"ok": False, "text": str(e)[:400]}
+        status = []
+        for prov, (env_name, param) in agent.KEY_PARAMS.items():
+            key = agent._key_for(prov)
+            status.append({"code": prov, "label": llm.PROVIDERS[prov]["label"],
+                           "configured": bool(key), "from_env": bool(os.environ.get(env_name)),
+                           "hint": ("…" + key[-4:]) if key and key != "local" else "",
+                           "model": llm.PROVIDERS[prov]["model"], "search": llm.PROVIDERS[prov]["search"]})
+        return self._render("campus_pi.admin_ai_settings", {
+            "status": status, "msg": msg, "test": test, "active": agent.provider_label(),
+            "provider": ICP.get_param("campus_pi.ai_provider") or "",
+            "model": ICP.get_param("campus_pi.ai_model") or "",
+            "base_url": ICP.get_param("campus_pi.ai_base_url") or ""})
 
     def _job(self, job_id):
         job = request.env["campus.agent.job"].sudo().browse(job_id).exists()
