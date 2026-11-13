@@ -254,7 +254,30 @@ class Campus(http.Controller):
         course, enrollment = self._course(course_id)
         attempts = enrollment.attempt_ids.filtered(lambda a: a.state == "done") if enrollment else []
         return self._render("campus_pi.course_simulator", {
-            "course": course, "enrollment": enrollment, "attempts": attempts, "tab": "sim"})
+            "course": course, "enrollment": enrollment, "attempts": attempts, "tab": "sim",
+            "can_edit": self._can_edit_course(course)})
+
+    @http.route("/campus/curso/<int:course_id>/preguntas/importar", type="http", auth="user",
+                methods=["POST"], sitemap=False)
+    def import_questions(self, course_id, **kw):
+        """Carga de un banco de preguntas en formato GIFT (Moodle) por el docente o el administrador."""
+        course, _enr = self._course(course_id)
+        if not self._can_edit_course(course):
+            raise NotFound()
+        from ..tools.gift import parse_gift
+        base = "/campus/curso/%s/simulador" % course.id
+        f = request.httprequest.files.get("gift")
+        if not f or not f.filename:
+            return request.redirect(base + "?gift=sin_archivo#importar")
+        data = f.read()
+        if len(data) > 3 * 1024 * 1024:
+            return request.redirect(base + "?gift=grande#importar")
+        items = parse_gift(data.decode("utf-8-sig", errors="ignore"))
+        if not items:
+            return request.redirect(base + "?gift=vacio#importar")
+        n = request.env["campus.ai.agent"].sudo().import_question_items(
+            course, items, (kw.get("domain") or "General").strip()[:120])
+        return request.redirect(base + "?gift=ok&n=%d&t=%d#importar" % (n, len(items)))
 
     @http.route("/campus/curso/<int:course_id>/simulador/iniciar", type="http", auth="user",
                 methods=["POST"], sitemap=False)
