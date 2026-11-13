@@ -210,6 +210,6 @@ class CampusBadge(models.Model):
 
     _sql_constraints = [("uniq_code", "unique(code)", "Código duplicado")]
 
-    def logo_data_uri(self):
-        with file_open("campus_pi/static/src/img/isologo_pi.png", "rb") as f:
+    def logo_data_uri(self, name="isologo_pi.png"):
+        with file_open("campus_pi/static/src/img/%s" % name, "rb") as f:
             return "data:image/png;base64," + base64.b64encode(f.read()).decode()

@@ -101,7 +101,7 @@ class CampusAiAgent(models.AbstractModel):
             raise UserError(_("No se pudo leer el archivo %s: %s") % (filename, e))
 
     # ---------------------------------------- agente de diseño instruccional
-    COURSE_SYSTEM = """Eres el Agente de Diseño Instruccional de InnobaTech Lab del Politécnico Internacional (Colombia).
+    COURSE_SYSTEM = """Eres el Agente de Diseño Instruccional de InnovaTech Lab del Politécnico Internacional (Colombia).
 Conviertes un syllabus institucional (formato PI-GA-FT-141) en un curso virtual de microcertificación
 alineado con una certificación internacional. Respetas la estructura institucional: sección "Inicio",
 Núcleos 1..N y "Cierre". En cada núcleo combinas: lectura, presentación interactiva o video, infografía,
@@ -291,7 +291,7 @@ Escribes en español de Colombia, claro y profesional. Respondes SOLO con JSON v
         else:
             weak = self._weak_domains(enrollment) if enrollment else []
             system = (
-                "Eres el Tutor IA de InnobaTech Lab (Politécnico Internacional). Acompañas a %s en el curso. "
+                "Eres el Tutor IA de InnovaTech Lab (Politécnico Internacional). Acompañas a %s en el curso. "
                 "Método socrático: primero pregunta qué ha intentado, explica con ejemplos colombianos "
                 "cotidianos, referencia la lección exacta del curso y termina con una pregunta de verificación "
                 "o un mini-reto. Nunca entregues resuelto un entregable calificable; guía paso a paso. "
