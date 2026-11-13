@@ -28,8 +28,9 @@
                 <div class="page" style="font-family: Helvetica, Arial, sans-serif;">
                     <div style="border: 10px solid #160B8B; padding: 36px; min-height: 640px; position: relative;">
                         <div style="border: 2px solid #6ACCEA; padding: 28px; min-height: 560px; text-align: center;">
-                            <img t-att-src="b.logo_data_uri()" style="height: 120px;"/>
-                            <div style="color:#6ACCEA; letter-spacing: 4px; font-size: 13px; margin-top: 8px;">INNOBATECH LAB · PLATAFORMA DE INNOVACIÓN TECNOLÓGICA</div>
+                            <img t-att-src="b.logo_data_uri()" style="height: 110px; vertical-align: middle;"/>
+                            <img t-att-src="b.logo_data_uri('innovatech_lab.png')" style="height: 90px; vertical-align: middle; margin-left: 24px;"/>
+                            <div style="color:#6ACCEA; letter-spacing: 4px; font-size: 13px; margin-top: 8px;">INNOVATECH LAB · LABORATORIO DE INNOVACIÓN TECNOLÓGICA PARA EL APRENDIZAJE</div>
                             <h1 style="color:#160B8B; font-size: 40px; margin: 18px 0 6px;">MICROCREDENCIAL</h1>
                             <div style="font-size: 16px;">El Politécnico Internacional certifica que</div>
                             <div style="font-size: 32px; color:#160B8B; font-weight: bold; margin: 12px 0;" t-esc="b.user_id.name"/>
