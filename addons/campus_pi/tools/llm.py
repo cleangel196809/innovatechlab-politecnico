@@ -113,6 +113,21 @@ def _post(url, payload, headers, timeout, tries=4):
     return last
 
 
+SAMPLING = ("temperature", "top_p", "top_k")
+NO_SAMPLING = set()  # (proveedor, modelo) que rechazan parámetros de muestreo
+
+
+def _rejected_param(resp, payload):
+    """Si el proveedor rechaza un parámetro (p. ej. 'temperature is deprecated'), devuelve su nombre."""
+    if resp is None or resp.status_code != 400:
+        return None
+    txt = (resp.text or "").lower()
+    for k in SAMPLING:
+        if k in payload and k in txt:
+            return k
+    return None
+
+
 def _err(resp):
     return LLMError("Error del proveedor de IA (%s): %s" % (resp.status_code, resp.text[:300]))
 
@@ -132,6 +147,13 @@ def _alternate(messages):
 
 
 # ------------------------------------------------------------------ Anthropic
+def _modern_claude(model):
+    """Modelos Claude de generación 5 en adelante: no admiten 'temperature'."""
+    import re
+    m = re.search(r"claude-(?:[a-z]+-)?(\d+)", model or "")
+    return bool(m and int(m.group(1)) >= 5)
+
+
 def _anthropic(conf, system, messages, max_tokens, temperature, web_search, json_mode, timeout):
     p = PROVIDERS["anthropic"]
     wanted = conf.get("model") or p["model"]
@@ -140,7 +162,7 @@ def _anthropic(conf, system, messages, max_tokens, temperature, web_search, json
                "messages": list(messages)}
     if web_search:
         payload["tools"] = [{"type": "web_search_20250305", "name": "web_search", "max_uses": 10}]
-    else:
+    elif temperature is not None and ("anthropic", model) not in NO_SAMPLING and not _modern_claude(model):
         payload["temperature"] = temperature
     headers = {"x-api-key": conf["key"], "anthropic-version": "2023-06-01", "content-type": "application/json"}
     texts, sources, stop = [], [], None
@@ -153,7 +175,22 @@ def _anthropic(conf, system, messages, max_tokens, temperature, web_search, json
                 RESOLVED[("anthropic", wanted)] = alt
                 conf["resolved_model"] = alt
                 payload["model"] = alt
+                if _modern_claude(alt):
+                    payload.pop("temperature", None)
                 resp = _post(conf.get("url") or p["url"], payload, headers, timeout)
+        bad = _rejected_param(resp, payload)
+        while bad:
+            _logger.warning("El modelo %s rechaza '%s'; se reintenta sin él", payload["model"], bad)
+            NO_SAMPLING.add(("anthropic", payload["model"]))
+            for k in SAMPLING:
+                payload.pop(k, None)
+            resp = _post(conf.get("url") or p["url"], payload, headers, timeout)
+            bad = _rejected_param(resp, payload)
+        if (resp.status_code == 400 and "tools" in payload
+                and any(w in (resp.text or "").lower() for w in ("web_search", "tool"))):
+            _logger.warning("Búsqueda web no disponible para %s; se continúa sin ella", payload["model"])
+            payload.pop("tools")
+            resp = _post(conf.get("url") or p["url"], payload, headers, timeout)
         if resp.status_code >= 400:
             raise _err(resp)
         data = resp.json()
@@ -236,13 +273,20 @@ def _openai_like(conf, system, messages, max_tokens, temperature, web_search, js
     headers = {"Authorization": "Bearer %s" % conf["key"], "content-type": "application/json"}
     resp = None
     for model in models:
-        payload = {"model": model, "messages": msgs, "temperature": temperature}
+        payload = {"model": model, "messages": msgs}
+        if temperature is not None and (prov, model) not in NO_SAMPLING:
+            payload["temperature"] = temperature
         payload["max_completion_tokens" if prov == "openai" else "max_tokens"] = min(max_tokens, p["max_out"])
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
         resp = _post(base + "/chat/completions", payload, headers, timeout)
         if resp.status_code == 400 and json_mode and "response_format" in resp.text:
             payload.pop("response_format")
+            resp = _post(base + "/chat/completions", payload, headers, timeout)
+        if _rejected_param(resp, payload):
+            NO_SAMPLING.add((prov, model))
+            for k in SAMPLING:
+                payload.pop(k, None)
             resp = _post(base + "/chat/completions", payload, headers, timeout)
         if resp.status_code in (404, 429) and model != models[-1]:
             continue
