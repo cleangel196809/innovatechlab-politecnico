@@ -225,6 +225,7 @@ button.cp-chip { cursor: pointer; }
 .cp-job-steps li.ok { color: var(--ok); }
 .cp-job-log { background: #0B1030; color: #CFE3FF; padding: 14px; border-radius: 12px; max-height: 360px; overflow: auto; font-size: 12.5px; white-space: pre-wrap; }
 .cp-sources summary { cursor: pointer; }
+.cp-domain-bar { display: grid; grid-template-columns: 1fr 120px 60px; gap: 8px; align-items: center; font-size: 13px; margin: 6px 0; }
 .cp-resources { margin: 18px 0; border: 1px dashed var(--line); border-radius: 12px; padding: 10px 14px; background: #FBFCFF; }
 .cp-resources summary { cursor: pointer; font-weight: 600; color: var(--pi-navy); }
 .cp-form .cp-inline { display: inline; font-weight: 400; margin-left: 10px; }
