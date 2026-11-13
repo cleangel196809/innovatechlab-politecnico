@@ -42,6 +42,34 @@ Módulo **Odoo 17 Community** (`addons/campus_pi`) con base de datos **PostgreSQ
 
 ---
 
+## 1.1 Agente de creación de cursos (v17.0.1.2.0)
+
+**Campus → Crear curso con IA**: se sube el syllabus PI-GA-FT-141 (DOCX recomendado; también PDF o TXT) y el agente
+trabaja **en segundo plano** mostrando su avance en vivo (`/campus/admin/agente/<id>`):
+
+1. **Lee el syllabus**: identificación, competencia, resultado de aprendizaje, objetivos 3.4.x, tabla de alineación
+   curricular (núcleos, temas, objetivo, estrategias, criterios), criterios de evaluación, bibliografía y cibergrafía.
+   Con PDF/TXT y API key, Claude reconstruye la tabla de alineación.
+2. **Certificación**: la elegida, la detectada en el syllabus (código o nombre) o la que encuentre la investigación
+   (la crea con dominios y pesos).
+3. **Investigación profunda en la web** (Claude + herramienta `web_search`): versión vigente de la certificación,
+   novedades y recursos por núcleo, con fuentes registradas en el curso.
+4. **Estructura y cronograma**: Inicio, un núcleo por cada núcleo del syllabus y Cierre, con fechas.
+5. **Contenido por núcleo** (en paralelo): lectura con fuentes, presentación (diapositivas), infografía, guion de video,
+   actividad formativa, laboratorio, evaluación según el instrumento del syllabus (rúbrica BUENO/REGULAR/INSUFICIENTE),
+   sesión virtual con agenda, sesión presencial asistida por IA con guion y cuestionario con preguntas propias.
+6. **Banco del simulador** por dominio, proporcional al peso de cada dominio.
+7. **Inicio y cierre**: guía del estudiante (ruta, matriz de evaluación, entorno, acuerdos), ruta de certificación,
+   diagnóstico, video de bienvenida, autoevaluación, simulacro y plan para el examen.
+8. **Fuentes y bitácora** del agente en el curso; inscripción de estudiantes.
+
+Sin API key todo se arma solo con el syllabus (sin investigación ni preguntas nuevas). Si una etapa de IA falla, el
+agente continúa con el contenido base y lo deja anotado en la bitácora.
+Requisito para la investigación: tener habilitada la búsqueda web en la organización de la Consola de Claude.
+
+Pruebas: `tests/e2e/agent_e2e.js`, `agent_fail.js` y `mock_anthropic.py` (simula la API de Anthropic, incluida la
+búsqueda web, para probar el agente sin gastar créditos: `CAMPUS_ANTHROPIC_URL=http://127.0.0.1:9911/v1/messages`).
+
 ## 2. Paso a paso: de cero a Render
 
 ### Paso 1 · Crear la base de datos gratuita en Neon
