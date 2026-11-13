@@ -48,6 +48,10 @@
                                 <span t-foreach="course.skills.split(',')" t-as="s" class="cp-chip" t-esc="s.strip()"/>
                             </div>
                         </div>
+                        <details t-if="course.sources_html" class="cp-card cp-sources">
+                            <summary><b>📚 Fuentes y referencias del curso</b></summary>
+                            <div class="cp-rich" t-out="course.sources_html"/>
+                        </details>
                         <div t-foreach="course.section_ids" t-as="sec" class="cp-card cp-section-card">
                             <div class="cp-section-head">
                                 <h3 t-esc="sec.name"/>

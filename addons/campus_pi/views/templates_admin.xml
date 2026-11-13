@@ -6,12 +6,12 @@
                 <div>
                     <p class="cp-eyebrow">Agente de diseño instruccional</p>
                     <h1>🤖 Crear curso a partir del syllabus</h1>
-                    <p>Sube el syllabus institucional (PI-GA-FT-141) en PDF o Word. El agente identifica núcleos, resultados de aprendizaje y criterios de evaluación, y genera: lecciones, sesiones virtuales, sesiones presenciales asistidas por IA con guion, cronograma por fechas y preguntas del simulador alineadas con la certificación internacional.</p>
+                    <p>Sube el syllabus institucional (PI-GA-FT-141) en Word o PDF. El agente lee núcleos, objetivos, criterios de evaluación y bibliografía; <b>investiga en la web</b> la versión vigente de la certificación, novedades y recursos por núcleo; y crea todo el curso: lecturas con fuentes, presentaciones, infografías, guiones de video, actividades, laboratorios, evaluaciones con rúbrica, sesiones virtuales, sesiones presenciales asistidas por IA, cuestionarios, banco del simulador y cronograma.</p>
                 </div>
             </section>
-            <div t-if="not ai_enabled" class="cp-alert">⚠️ No hay API key de Anthropic: el agente trabajará en <b>modo sin IA</b> (estructura por reglas). Configure <code>ANTHROPIC_API_KEY</code> para generación completa.</div>
+            <div t-if="not ai_enabled" class="cp-alert">⚠️ No hay API key de Anthropic: el agente trabajará en <b>modo sin IA</b> (todo el contenido se arma solo con el syllabus, sin investigación web). Configure <code>ANTHROPIC_API_KEY</code> para generación completa.</div>
             <div t-if="error" class="cp-alert cp-alert-error" t-esc="error"/>
-            <form method="post" enctype="multipart/form-data" class="cp-card cp-form cp-form-grid cp-loading-form">
+            <form method="post" enctype="multipart/form-data" class="cp-card cp-form cp-form-grid">
                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                 <div class="cp-span-2">
                     <label>Nombre del curso</label>
@@ -24,6 +24,7 @@
                 <div>
                     <label>Certificación internacional objetivo</label>
                     <select name="certification_id">
+                        <option value="auto" selected="selected">🔎 Detectar en el syllabus / investigar (recomendado)</option>
                         <option value="">— Ninguna —</option>
                         <option t-foreach="certs" t-as="c" t-att-value="c.id"><t t-esc="c.provider"/> · <t t-esc="c.name"/> (<t t-esc="c.exam_code"/>)</option>
                     </select>
@@ -54,11 +55,63 @@
                     <label>Instrucciones adicionales para el agente</label>
                     <textarea name="instructions" rows="3" placeholder="Ej.: Incluir un laboratorio con Docker en cada núcleo; énfasis en casos de MiPymes colombianas; 2 sesiones presenciales por núcleo."/>
                 </div>
+                <div class="cp-span-2">
+                    <label class="cp-check-item"><input type="checkbox" name="deep_research" value="1" checked="checked"/> Hacer investigación profunda en la web (certificación vigente, novedades y recursos con fuentes)</label>
+                </div>
                 <div class="cp-span-2 cp-row">
                     <button class="cp-btn cp-btn-primary cp-btn-lg">Generar curso con el agente</button>
-                    <span class="cp-muted cp-small">Con IA puede tardar 1 a 3 minutos.</span>
+                    <span class="cp-muted cp-small">El agente trabaja en segundo plano y verás su avance en vivo (con IA e investigación: 5 a 15 minutos).</span>
                 </div>
             </form>
+            <div class="cp-card" t-if="jobs">
+                <h3>Ejecuciones recientes del agente</h3>
+                <table class="cp-table">
+                    <tr><th>Curso</th><th>Estado</th><th>Avance</th><th>Fecha</th><th/></tr>
+                    <tr t-foreach="jobs" t-as="j">
+                        <td t-esc="j.name"/>
+                        <td><t t-esc="dict(j._fields['state'].selection).get(j.state)"/></td>
+                        <td><t t-esc="j.progress"/> %</td>
+                        <td t-esc="j.create_date" t-options="{'widget': 'datetime', 'format': 'd MMM, h:mm a'}"/>
+                        <td><a t-attf-href="/campus/admin/agente/#{j.id}">Ver avance →</a></td>
+                    </tr>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <template id="admin_agent_job" name="Admin - avance del agente">
+        <t t-call="campus_pi.layout">
+            <t t-set="title" t-value="'Agente · ' + job.name"/>
+            <section class="cp-hero">
+                <div>
+                    <p class="cp-eyebrow">Agente de diseño instruccional</p>
+                    <h1>🤖 <t t-esc="job.name"/></h1>
+                    <p><t t-esc="job.syllabus_filename"/> · <t t-if="job.use_ai">Con Claude<t t-if="job.deep_research"> e investigación web</t></t><t t-else="">Modo sin IA (solo syllabus)</t></p>
+                </div>
+            </section>
+            <div class="cp-card cp-job" id="cp-job" t-att-data-url="'/campus/admin/agente/%s/estado' % job.id">
+                <div class="cp-job-head">
+                    <b id="cp-job-stage" t-esc="job.stage and dict(stages).get(job.stage) or 'En cola'"/>
+                    <span id="cp-job-pct"><t t-esc="job.progress"/> %</span>
+                </div>
+                <div class="cp-progress cp-progress-lg"><div id="cp-job-bar" t-attf-style="width: #{job.progress}%"/></div>
+                <ol class="cp-job-steps">
+                    <li t-foreach="stages" t-as="st" t-att-data-stage="st[0]" t-esc="st[1]"/>
+                </ol>
+                <div id="cp-job-done" class="cp-alert cp-alert-ok" t-att-hidden="None if job.state == 'done' else 'hidden'">
+                    ✅ Curso generado. <a id="cp-job-link" t-att-href="'/campus/curso/%s' % job.course_id.id if job.course_id else '#'" class="cp-btn cp-btn-primary cp-btn-sm">Abrir el curso</a>
+                    <a href="/campus/admin/cursos" class="cp-btn cp-btn-ghost cp-btn-sm">Programar y publicar</a>
+                </div>
+                <div id="cp-job-error" class="cp-alert cp-alert-error" t-att-hidden="None if job.state == 'error' else 'hidden'">
+                    <span id="cp-job-error-msg"><t t-esc="job.error or ''"/></span>
+                    <form method="post" t-attf-action="/campus/admin/agente/#{job.id}/reintentar" style="display:inline">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <button class="cp-btn cp-btn-primary cp-btn-sm">Reintentar</button>
+                    </form>
+                </div>
+                <h4>Bitácora</h4>
+                <pre id="cp-job-log" class="cp-job-log"><t t-esc="job.log or ''"/></pre>
+            </div>
         </t>
     </template>
 

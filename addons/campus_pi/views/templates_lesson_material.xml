@@ -39,6 +39,7 @@
                     <span class="cp-ig-badge">Infografía del núcleo</span>
                     <h3 t-esc="ig['title']"/>
                     <p t-if="ig['objective']" t-esc="ig['objective']"/>
+                    <p t-if="ig.get('key_fact')" class="cp-ig-key">💡 <t t-esc="ig['key_fact']"/></p>
                     <div class="cp-ig-meta">
                         <span>⏱️ <t t-esc="ig['minutes']"/> min de trabajo</span>
                         <span t-if="ig['cert']">🏅 <t t-esc="ig['cert']"/></span>
