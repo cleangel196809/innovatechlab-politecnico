@@ -26,6 +26,7 @@
                         <t t-if="role == 'admin'">
                             <a href="/campus/admin/crear-curso">Crear curso con IA</a>
                             <a href="/campus/admin/cursos">Cursos</a>
+                            <a href="/campus/admin/ia">Proveedor de IA</a>
                         </t>
                         <t t-if="role in ('admin', 'teacher')"><a href="/web#action=campus_pi.action_course">Configurar (Odoo)</a></t>
                         <t t-if="role == 'admin'"><a href="/campus/valor">¿Por qué no Moodle?</a></t>
@@ -41,7 +42,7 @@
                 </main>
                 <footer class="cp-footer" t-if="not hide_nav">
                     Politécnico Internacional · <i>Toda una experiencia</i> · InnovaTech Lab — Laboratorio de Innovación Tecnológica para el Aprendizaje
-                    <span t-if="not ai_enabled" class="cp-pill cp-pill-warn">Agente IA en modo sin API key</span>
+                    <span t-if="not ai_enabled" class="cp-pill cp-pill-warn">Agente IA sin proveedor configurado</span>
                 </footer>
             </body>
         </html>

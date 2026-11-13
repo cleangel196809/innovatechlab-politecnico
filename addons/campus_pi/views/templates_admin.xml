@@ -9,7 +9,8 @@
                     <p>Sube el syllabus institucional (PI-GA-FT-141) en Word o PDF. El agente lee núcleos, objetivos, criterios de evaluación y bibliografía; <b>investiga en la web</b> la versión vigente de la certificación, novedades y recursos por núcleo; y crea todo el curso: lecturas con fuentes, presentaciones, infografías, guiones de video, actividades, laboratorios, evaluaciones con rúbrica, sesiones virtuales, sesiones presenciales asistidas por IA, cuestionarios, banco del simulador y cronograma.</p>
                 </div>
             </section>
-            <div t-if="not ai_enabled" class="cp-alert">⚠️ No hay API key de Anthropic: el agente trabajará en <b>modo sin IA</b> (todo el contenido se arma solo con el syllabus, sin investigación web). Configure <code>ANTHROPIC_API_KEY</code> para generación completa.</div>
+            <div t-if="not ai_enabled" class="cp-alert">⚠️ No hay proveedor de IA configurado: el agente trabajará en <b>modo sin IA</b> (todo se arma solo con el syllabus). Configure una clave gratuita de Gemini o Groq (o Claude/ChatGPT) en <a href="/campus/admin/ia">Proveedor de IA</a> o en las variables de Render.</div>
+            <div t-else="" class="cp-alert cp-alert-ok">🤖 Proveedor de IA activo: <b t-esc="ai_label"/> (<a href="/campus/admin/ia">cambiar</a>)<t t-if="not ai_search"> · sin búsqueda web (los datos de la certificación quedarán marcados para verificar)</t>.</div>
             <div t-if="error" class="cp-alert cp-alert-error" t-esc="error"/>
             <form method="post" enctype="multipart/form-data" class="cp-card cp-form cp-form-grid">
                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
@@ -86,7 +87,7 @@
                 <div>
                     <p class="cp-eyebrow">Agente de diseño instruccional</p>
                     <h1>🤖 <t t-esc="job.name"/></h1>
-                    <p><t t-esc="job.syllabus_filename"/> · <t t-if="job.use_ai">Con Claude<t t-if="job.deep_research"> e investigación web</t></t><t t-else="">Modo sin IA (solo syllabus)</t></p>
+                    <p><t t-esc="job.syllabus_filename"/> · <t t-esc="job.provider or ('Con IA' if job.use_ai else 'Modo sin IA (solo syllabus)')"/></p>
                 </div>
             </section>
             <div class="cp-card cp-job" id="cp-job" t-att-data-url="'/campus/admin/agente/%s/estado' % job.id">
@@ -111,6 +112,68 @@
                 </div>
                 <h4>Bitácora</h4>
                 <pre id="cp-job-log" class="cp-job-log"><t t-esc="job.log or ''"/></pre>
+            </div>
+        </t>
+    </template>
+
+
+    <template id="admin_ai_settings" name="Admin - proveedor de IA">
+        <t t-call="campus_pi.layout">
+            <section class="cp-hero">
+                <div>
+                    <p class="cp-eyebrow">Administración</p>
+                    <h1>🧠 Proveedor de inteligencia artificial</h1>
+                    <p>El tutor IA, el agente de creación de cursos y los planes de tutoría usan el proveedor activo. Para pruebas puede usar uno gratuito (Gemini o Groq) y luego cambiar a Claude o ChatGPT sin tocar el código.</p>
+                </div>
+            </section>
+            <div t-if="msg" class="cp-alert cp-alert-ok" t-esc="msg"/>
+            <div class="cp-cols">
+                <form method="post" class="cp-card cp-form">
+                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                    <input type="hidden" name="action" value="save"/>
+                    <h3>Configuración</h3>
+                    <label>Proveedor</label>
+                    <select name="provider">
+                        <option value="" t-att-selected="'selected' if not provider else None">Automático (el primero con clave)</option>
+                        <option t-foreach="status" t-as="p" t-att-value="p['code']" t-att-selected="'selected' if provider == p['code'] else None" t-esc="p['label']"/>
+                    </select>
+                    <t t-foreach="status" t-as="p">
+                        <label>Clave de <t t-esc="p['label']"/>
+                            <small t-if="p['configured']" class="cp-ok-text"> · configurada <t t-esc="p['hint']"/><t t-if="p['from_env']"> (variable de Render)</t></small></label>
+                        <input type="password" t-att-name="'key_%s' % p['code']" autocomplete="off" placeholder="Pegue la clave para cambiarla (vacío = no cambiar)"/>
+                        <label t-if="p['configured'] and not p['from_env']" class="cp-inline"><input type="checkbox" t-att-name="'clear_%s' % p['code']" value="1"/> borrar esta clave</label>
+                    </t>
+                    <label>Modelo (opcional)</label>
+                    <input name="model" t-att-value="model" placeholder="Vacío = recomendado (p. ej. gemini-flash-latest, llama-3.3-70b-versatile)"/>
+                    <label>URL base (solo «compatible con OpenAI»)</label>
+                    <input name="base_url" t-att-value="base_url" placeholder="https://openrouter.ai/api/v1"/>
+                    <button class="cp-btn cp-btn-primary">Guardar</button>
+                </form>
+                <div>
+                    <div class="cp-card">
+                        <h3>Activo ahora</h3>
+                        <p><b t-esc="active"/></p>
+                        <form method="post">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <input type="hidden" name="action" value="test"/>
+                            <button class="cp-btn cp-btn-ghost">Probar conexión</button>
+                        </form>
+                        <div t-if="test" t-attf-class="cp-alert #{'cp-alert-ok' if test['ok'] else 'cp-alert-error'}">
+                            <b t-esc="'✔ Respondió' if test['ok'] else '✘ Falló'"/><t t-if="test.get('secs')"> en <t t-esc="test['secs']"/> s</t>: <t t-esc="test['text']"/>
+                        </div>
+                    </div>
+                    <div class="cp-card">
+                        <h3>Dónde obtener una clave</h3>
+                        <table class="cp-table">
+                            <tr><th>Proveedor</th><th>Costo</th><th>Búsqueda web</th></tr>
+                            <tr><td>Gemini · <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></td><td>Nivel gratuito con cupo diario</td><td>Sí, cuando el plan lo permite</td></tr>
+                            <tr><td>Groq · <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></td><td>Nivel gratuito con límites por minuto</td><td>No</td></tr>
+                            <tr><td>Claude · <a href="https://platform.claude.com" target="_blank">platform.claude.com</a></td><td>De pago (créditos)</td><td>Sí</td></tr>
+                            <tr><td>ChatGPT · <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a></td><td>De pago</td><td>No (en esta integración)</td></tr>
+                        </table>
+                        <p class="cp-small cp-muted">Las claves quedan en la base de datos del campus; si prefiere, defínalas en Render como GEMINI_API_KEY, GROQ_API_KEY, ANTHROPIC_API_KEY u OPENAI_API_KEY (tienen prioridad). En los niveles gratuitos el proveedor puede usar los datos para mejorar sus modelos: no envíe información confidencial.</p>
+                    </div>
+                </div>
             </div>
         </t>
     </template>

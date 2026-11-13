@@ -7,13 +7,16 @@
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
                 <app data-string="Campus PI" string="Campus PI" name="campus_pi">
-                    <block title="Agentes de IA (Anthropic Claude)">
-                        <setting string="API key" help="Preferible usar la variable de entorno ANTHROPIC_API_KEY en Render.">
-                            <field name="campus_anthropic_api_key" password="True"/>
+                    <block title="Agentes de IA">
+                        <setting string="Proveedor" help="También se puede configurar desde el campus: Crear curso con IA → Proveedor de IA.">
+                            <field name="campus_ai_provider"/>
                         </setting>
-                        <setting string="Modelo" help="Identificador del modelo Claude (ver docs.anthropic.com).">
-                            <field name="campus_claude_model"/>
-                        </setting>
+                        <setting string="Gemini" help="Gratis en aistudio.google.com/apikey"><field name="campus_gemini_api_key" password="True"/></setting>
+                        <setting string="Groq" help="Gratis en console.groq.com/keys"><field name="campus_groq_api_key" password="True"/></setting>
+                        <setting string="Anthropic"><field name="campus_anthropic_api_key" password="True"/></setting>
+                        <setting string="OpenAI"><field name="campus_openai_api_key" password="True"/></setting>
+                        <setting string="Compatible con OpenAI"><field name="campus_compatible_api_key" password="True"/><field name="campus_ai_base_url" placeholder="https://openrouter.ai/api/v1"/></setting>
+                        <setting string="Modelo" help="Vacío = modelo recomendado del proveedor."><field name="campus_ai_model"/></setting>
                     </block>
                 </app>
             </xpath>

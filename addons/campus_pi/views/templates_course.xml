@@ -273,23 +273,53 @@
             <t t-call="campus_pi.course_header"/>
             <div class="cp-cols cp-cols-wide">
                 <div class="cp-card cp-chat-card">
-                    <h2>🤖 Tutor IA del curso</h2>
-                    <p class="cp-muted cp-small">Conoce las lecciones de este curso, el syllabus y los dominios de la certificación. Te guía paso a paso (no resuelve tus entregables). Las conversaciones las puede revisar tu docente.</p>
+                    <t t-if="staff">
+                        <h2>🧑‍🏫 Asistente IA del <t t-esc="'administrador' if role == 'admin' else 'docente'"/></h2>
+                        <p class="cp-muted cp-small">Conoce las lecciones, el syllabus, los dominios de la certificación y las dificultades del grupo. Te ayuda a preparar sesiones, explicar temas, redactar preguntas con retroalimentación y rúbricas. Proveedor: <t t-esc="ai_label"/>.</p>
+                    </t>
+                    <t t-else="">
+                        <h2>🤖 Tutor IA del curso</h2>
+                        <p class="cp-muted cp-small">Conoce las lecciones de este curso, el syllabus y los dominios de la certificación. Te guía paso a paso (no resuelve tus entregables). Las conversaciones las puede revisar tu docente.</p>
+                    </t>
                     <div class="cp-chat" id="cp-chat" t-att-data-url="'/campus/curso/%s/tutor-ia/mensaje' % course.id">
-                        <div class="cp-msg cp-msg-ai">¡Hola, <t t-esc="user.name.split(' ')[0]"/>! Soy tu tutor IA de <b t-esc="course.name"/>. ¿En qué tema quieres trabajar hoy?</div>
+                        <div t-if="staff" class="cp-msg cp-msg-ai">¡Hola, <t t-esc="user.name.split(' ')[0]"/>! Soy tu asistente para <b t-esc="course.name"/>. ¿Qué necesitas preparar, explicar o revisar con el grupo hoy?</div>
+                        <div t-else="" class="cp-msg cp-msg-ai">¡Hola, <t t-esc="user.name.split(' ')[0]"/>! Soy tu tutor IA de <b t-esc="course.name"/>. ¿Qué tema no entiendes o te cuesta entender? Cuéntame y lo trabajamos juntos.</div>
                         <div t-foreach="history" t-as="m" t-attf-class="cp-msg #{'cp-msg-ai' if m.role == 'assistant' else 'cp-msg-me'}" t-att-data-md="'1' if m.role == 'assistant' else None" t-esc="m.content"/>
                     </div>
                     <form id="cp-chat-form" class="cp-chat-form">
-                        <textarea id="cp-chat-input" rows="2" placeholder="Escribe tu pregunta..." t-esc="prefill"/>
+                        <textarea id="cp-chat-input" rows="2" t-att-placeholder="'Escribe tu solicitud…' if staff else 'Escribe lo que no entiendes o te cuesta entender…'" t-esc="prefill"/>
                         <button class="cp-btn cp-btn-primary" type="submit">Enviar</button>
                     </form>
-                    <div class="cp-row cp-small">
+                    <div class="cp-row cp-small" t-if="staff">
+                        <button type="button" class="cp-chip cp-suggest">Prepara la agenda de la próxima sesión sincrónica de 90 minutos</button>
+                        <button type="button" class="cp-chip cp-suggest">Redacta 5 preguntas tipo examen con respuesta correcta y retroalimentación</button>
+                        <button type="button" class="cp-chip cp-suggest">¿Qué temas les cuestan más a los estudiantes y cómo los refuerzo?</button>
+                        <button type="button" class="cp-chip cp-suggest">Explícame el tema más difícil del curso para poder enseñarlo</button>
+                    </div>
+                    <div class="cp-row cp-small" t-else="">
                         <button type="button" class="cp-chip cp-suggest">Explícame el tema más importante del núcleo actual</button>
                         <button type="button" class="cp-chip cp-suggest">Hazme 3 preguntas tipo examen</button>
                         <button type="button" class="cp-chip cp-suggest">¿Qué dominios del examen debo reforzar?</button>
                     </div>
                 </div>
-                <div class="cp-card" id="sesiones">
+                <div class="cp-card" t-if="staff">
+                    <h3>📊 ¿Qué les cuesta entender a los estudiantes?</h3>
+                    <p class="cp-small cp-muted"><t t-esc="insights['attempts']"/> simulacros presentados en este curso.</p>
+                    <div t-if="not insights['domains']" class="cp-muted">Aún no hay simulacros para analizar.</div>
+                    <div t-foreach="insights['domains']" t-as="d" class="cp-domain-bar">
+                        <span t-esc="d[0]"/>
+                        <div class="cp-progress"><div t-attf-style="width: #{d[1]}%"/></div>
+                        <b t-attf-class="#{'cp-bad' if d[1] &lt; 70 else 'cp-ok-text'}"><t t-esc="d[1]"/> %</b>
+                    </div>
+                    <h4>Últimas preguntas de los estudiantes al tutor</h4>
+                    <div t-if="not insights['questions']" class="cp-muted">Sin preguntas todavía.</div>
+                    <div t-foreach="insights['questions']" t-as="q" class="cp-agenda-item">
+                        <small><b t-esc="q[0]"/> · <t t-esc="q[2]" t-options="{'widget': 'datetime', 'format': 'd MMM, h:mm a'}"/></small>
+                        <span t-esc="q[1]"/>
+                        <button type="button" class="cp-chip cp-suggest" t-esc="'¿Cómo explico esto a la clase?: ' + q[1][:120]"/>
+                    </div>
+                </div>
+                <div class="cp-card" id="sesiones" t-else="">
                     <h3>📅 Agendar sesión de tutoría con IA</h3>
                     <p class="cp-small cp-muted">El agente prepara con anticipación un plan personalizado usando tus resultados del simulador.</p>
                     <form t-if="enrollment" method="post" t-attf-action="/campus/curso/#{course.id}/tutor-ia/agendar" class="cp-form cp-loading-form">
@@ -300,8 +330,8 @@
                         <input type="datetime-local" name="datetime" required="required"/>
                         <label>Duración</label>
                         <select name="duration_min"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option></select>
-                        <label>¿Qué te cuesta?</label>
-                        <textarea name="notes" rows="2"/>
+                        <label>¿Qué no entiendes o te cuesta entender?</label>
+                        <textarea name="notes" rows="2" placeholder="Ej.: no entiendo cuándo usar cifrado simétrico o asimétrico"/>
                         <button class="cp-btn cp-btn-primary">Agendar y preparar plan</button>
                     </form>
                     <div t-foreach="sessions" t-as="s" class="cp-session-ia">
