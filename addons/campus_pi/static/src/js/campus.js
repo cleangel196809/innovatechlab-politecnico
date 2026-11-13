@@ -1,4 +1,4 @@
-/* InnobaTech Lab · Campus PI — JS ligero sin dependencias */
+/* InnovaTech Lab · Campus PI — JS ligero sin dependencias */
 (function () {
     "use strict";
 
@@ -58,6 +58,109 @@
             var iv = setInterval(tick, 1000);
             tick();
         }
+
+        // Presentaciones generadas (y video narrado con la voz del navegador)
+        document.querySelectorAll(".cp-deck").forEach(function (deck) {
+            var slides = deck.querySelectorAll(".cp-slide");
+            var dots = deck.querySelector(".cp-deck-dots");
+            var playBtn = deck.querySelector("[data-deck=play]");
+            var i = 0, playing = false, timer = null;
+            var synth = window.speechSynthesis;
+            if (!slides.length) { return; }
+            slides.forEach(function (_s, k) {
+                var b = document.createElement("button");
+                b.type = "button";
+                b.setAttribute("aria-label", "Diapositiva " + (k + 1));
+                b.addEventListener("click", function () { stop(); show(k); });
+                dots.appendChild(b);
+            });
+            function show(k) {
+                i = Math.max(0, Math.min(slides.length - 1, k));
+                slides.forEach(function (s, n) { s.classList.toggle("active", n === i); });
+                dots.querySelectorAll("button").forEach(function (b, n) { b.classList.toggle("on", n === i); });
+            }
+            function voice() {
+                if (!synth) { return null; }
+                var vs = synth.getVoices().filter(function (v) { return /^es/i.test(v.lang); });
+                return vs.filter(function (v) { return /CO|419|MX|US/.test(v.lang); })[0] || vs[0] || null;
+            }
+            function say() {
+                if (!playing) { return; }
+                var text = slides[i].dataset.say || "";
+                var next = function () {
+                    if (!playing) { return; }
+                    if (i < slides.length - 1) { show(i + 1); say(); } else { stop(); }
+                };
+                if (synth && window.SpeechSynthesisUtterance) {
+                    var u = new SpeechSynthesisUtterance(text);
+                    u.lang = "es-CO";
+                    var v = voice();
+                    if (v) { u.voice = v; }
+                    u.rate = 1;
+                    u.onend = next;
+                    u.onerror = function () { timer = setTimeout(next, 6000); };
+                    synth.speak(u);
+                } else {
+                    timer = setTimeout(next, Math.max(5000, text.length * 60));
+                }
+            }
+            function stop() {
+                playing = false;
+                clearTimeout(timer);
+                if (synth) { synth.cancel(); }
+                if (playBtn) { playBtn.textContent = "▶ Reproducir con narración"; }
+            }
+            if (playBtn) {
+                playBtn.addEventListener("click", function () {
+                    if (playing) { stop(); return; }
+                    playing = true;
+                    playBtn.textContent = "⏸ Pausar";
+                    say();
+                });
+            }
+            deck.querySelector("[data-deck=prev]").addEventListener("click", function () { stop(); show(i - 1); });
+            deck.querySelector("[data-deck=next]").addEventListener("click", function () { stop(); show(i + 1); });
+            document.addEventListener("keydown", function (e) {
+                if (/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ""))) { return; }
+                if (e.key === "ArrowRight") { stop(); show(i + 1); }
+                if (e.key === "ArrowLeft") { stop(); show(i - 1); }
+            });
+            window.addEventListener("pagehide", stop);
+            show(0);
+        });
+
+        // Práctica rápida de los cuestionarios (corrección en el servidor)
+        document.querySelectorAll(".cp-practice").forEach(function (box) {
+            box.querySelectorAll(".cp-practice-q").forEach(function (q) {
+                var fb = q.querySelector(".cp-practice-fb");
+                q.querySelectorAll(".cp-practice-opt").forEach(function (b) {
+                    b.addEventListener("click", function () {
+                        q.querySelectorAll(".cp-practice-opt").forEach(function (x) { x.disabled = true; });
+                        fetch(box.dataset.url, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ jsonrpc: "2.0", method: "call",
+                                params: { question_id: parseInt(q.dataset.q, 10), option_id: parseInt(b.dataset.o, 10) } }),
+                        }).then(function (r) { return r.json(); }).then(function (data) {
+                            var res = data.result || {};
+                            if (data.error || res.error) {
+                                fb.textContent = "No se pudo verificar la respuesta. Intenta de nuevo.";
+                                q.querySelectorAll(".cp-practice-opt").forEach(function (x) { x.disabled = false; });
+                                return;
+                            }
+                            b.classList.add(res.ok ? "ok" : "bad");
+                            var good = q.querySelector('[data-o="' + res.correct_id + '"]');
+                            if (good) { good.classList.add("ok"); }
+                            fb.innerHTML = "<b>" + (res.ok ? "✔ ¡Correcto!" : "✘ No es correcta.") + "</b> " +
+                                esc(res.feedback || "") + (res.explanation ? "<br/><span class='cp-muted'>" + esc(res.explanation) + "</span>" : "");
+                        }).catch(function () {
+                            fb.textContent = "No se pudo verificar la respuesta. Intenta de nuevo.";
+                            q.querySelectorAll(".cp-practice-opt").forEach(function (x) { x.disabled = false; });
+                        });
+                    });
+                });
+            });
+        });
 
         // Chat del tutor IA
         var chat = document.getElementById("cp-chat");
