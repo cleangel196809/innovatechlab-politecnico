@@ -7,7 +7,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 CALLS = []
-MODE = {"gemini_404_model": None, "fail_research": False, "fail_nucleo": None, "bad_json_once": set(), "pause_done": set()}
+MODE = {"strict_models": True, "gemini_404_model": None, "fail_research": False, "fail_nucleo": None, "bad_json_once": set(), "pause_done": set()}
 
 
 def text_block(t, citations=None):
@@ -97,9 +97,18 @@ def bank(payload):
     return {"stop_reason": "end_turn", "content": [text_block(json.dumps(qs, ensure_ascii=False))]}
 
 
+VALID_CLAUDE = ["claude-fable-5-2", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
+
+    def do_GET(self):
+        if self.path.startswith("/v1/models"):
+            CALLS.append("list-models")
+            return self._send(200, {"data": [{"id": i, "type": "model"} for i in VALID_CLAUDE]})
+        return self._send(404, {})
 
     def do_POST(self):
         if self.path.startswith("/control"):
@@ -128,6 +137,8 @@ class H(BaseHTTPRequestHandler):
             payload = raw
             if not self.headers.get("x-api-key", "").startswith("sk-ant-"):
                 return self._send(401, {"type": "error", "error": {"type": "authentication_error", "message": "invalid x-api-key"}})
+            if MODE.get("strict_models") and raw.get("model") not in VALID_CLAUDE:
+                return self._send(404, {"type": "error", "error": {"type": "not_found_error", "message": "model: %s" % raw.get("model")}})
         self._fmt = fmt
         system = payload.get("system") or ""
         prompt = json.dumps(payload["messages"][0]["content"], ensure_ascii=False)
