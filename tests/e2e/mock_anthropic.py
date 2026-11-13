@@ -139,6 +139,9 @@ class H(BaseHTTPRequestHandler):
                 return self._send(401, {"type": "error", "error": {"type": "authentication_error", "message": "invalid x-api-key"}})
             if MODE.get("strict_models") and raw.get("model") not in VALID_CLAUDE:
                 return self._send(404, {"type": "error", "error": {"type": "not_found_error", "message": "model: %s" % raw.get("model")}})
+            if "temperature" in raw and raw.get("model") in VALID_CLAUDE:
+                CALLS.append("rejected-temperature")
+                return self._send(400, {"type": "error", "error": {"type": "invalid_request_error", "message": "`temperature` is deprecated for this model."}})
         self._fmt = fmt
         system = payload.get("system") or ""
         prompt = json.dumps(payload["messages"][0]["content"], ensure_ascii=False)
