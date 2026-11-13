@@ -22,7 +22,7 @@ _logger = logging.getLogger(__name__)
 
 PROVIDERS = {
     "anthropic": {"label": "Claude (Anthropic)", "url": "https://api.anthropic.com/v1/messages",
-                  "model": "claude-sonnet-4-5", "fallback": None, "search": True, "parallel": 4, "max_out": 16000},
+                  "model": "claude-sonnet-5-5", "fallback": None, "search": True, "parallel": 4, "max_out": 16000},
     "gemini": {"label": "Gemini (Google)", "url": "https://generativelanguage.googleapis.com/v1beta",
                "model": "gemini-flash-latest", "fallback": "gemini-flash-lite-latest", "search": True,
                "parallel": 1, "max_out": 16000},
@@ -38,6 +38,48 @@ PROVIDERS = {
 
 class LLMError(Exception):
     pass
+
+
+# Modelos resueltos automáticamente cuando el configurado ya no existe (p. ej., retirado)
+RESOLVED = {}
+
+
+def _is_model_missing(resp):
+    return resp is not None and resp.status_code == 404 and "model" in (resp.text or "").lower()
+
+
+def _pick(ids, prefer):
+    for want in prefer:
+        for i in ids:
+            if want in i:
+                return i
+    return ids[0] if ids else None
+
+
+def resolve_anthropic_model(conf, current):
+    """Consulta /v1/models y elige el Sonnet más reciente disponible para la cuenta."""
+    url = (conf.get("url") or PROVIDERS["anthropic"]["url"]).replace("/messages", "/models")
+    try:
+        resp = requests.get(url, headers={"x-api-key": conf["key"], "anthropic-version": "2023-06-01"},
+                            params={"limit": 100}, timeout=30)
+        ids = [m["id"] for m in resp.json().get("data", []) if m.get("id")] if resp.status_code < 400 else []
+    except (requests.RequestException, ValueError):
+        ids = []
+    family = "haiku" if "haiku" in (current or "") else "opus" if "opus" in (current or "") else "sonnet"
+    return _pick(ids, [family, "sonnet", "haiku"])
+
+
+def resolve_gemini_model(conf, current):
+    base = (conf.get("url") or PROVIDERS["gemini"]["url"]).rstrip("/")
+    try:
+        resp = requests.get(base + "/models", headers={"x-goog-api-key": conf["key"]}, params={"pageSize": 200},
+                            timeout=30)
+        ids = [m["name"].split("/", 1)[-1] for m in resp.json().get("models", [])
+               if "generateContent" in (m.get("supportedGenerationMethods") or [])] if resp.status_code < 400 else []
+    except (requests.RequestException, ValueError):
+        ids = []
+    ids = [i for i in ids if "flash" in i and not any(x in i for x in ("image", "tts", "audio", "live", "embedding"))]
+    return _pick(ids, ["flash-latest", "flash-lite-latest", "flash"])
 
 
 def label(conf):
@@ -92,7 +134,9 @@ def _alternate(messages):
 # ------------------------------------------------------------------ Anthropic
 def _anthropic(conf, system, messages, max_tokens, temperature, web_search, json_mode, timeout):
     p = PROVIDERS["anthropic"]
-    payload = {"model": conf.get("model") or p["model"], "max_tokens": max_tokens, "system": system,
+    wanted = conf.get("model") or p["model"]
+    model = RESOLVED.get(("anthropic", wanted), wanted)
+    payload = {"model": model, "max_tokens": max_tokens, "system": system,
                "messages": list(messages)}
     if web_search:
         payload["tools"] = [{"type": "web_search_20250305", "name": "web_search", "max_uses": 10}]
@@ -102,6 +146,14 @@ def _anthropic(conf, system, messages, max_tokens, temperature, web_search, json
     texts, sources, stop = [], [], None
     for _turn in range(5):
         resp = _post(conf.get("url") or p["url"], payload, headers, timeout)
+        if _is_model_missing(resp):
+            alt = resolve_anthropic_model(conf, payload["model"])
+            if alt and alt != payload["model"]:
+                _logger.warning("Modelo %s no disponible; se usa %s", payload["model"], alt)
+                RESOLVED[("anthropic", wanted)] = alt
+                conf["resolved_model"] = alt
+                payload["model"] = alt
+                resp = _post(conf.get("url") or p["url"], payload, headers, timeout)
         if resp.status_code >= 400:
             raise _err(resp)
         data = resp.json()
@@ -126,7 +178,8 @@ def _anthropic(conf, system, messages, max_tokens, temperature, web_search, json
 def _gemini(conf, system, messages, max_tokens, temperature, web_search, json_mode, timeout):
     p = PROVIDERS["gemini"]
     base = (conf.get("url") or p["url"]).rstrip("/")
-    models = [m for m in [conf.get("model") or p["model"], p["fallback"]] if m]
+    wanted = conf.get("model") or p["model"]
+    models = [m for m in [RESOLVED.get(("gemini", wanted), wanted), p["fallback"]] if m]
     contents = [{"role": "model" if m["role"] == "assistant" else "user", "parts": [{"text": m["content"]}]}
                 for m in _alternate(messages)]
     gen = {"maxOutputTokens": max_tokens, "temperature": temperature}
@@ -146,6 +199,12 @@ def _gemini(conf, system, messages, max_tokens, temperature, web_search, json_mo
         if resp.status_code in (404, 429) and model != models[-1]:
             continue
         break
+    if _is_model_missing(resp):
+        alt = resolve_gemini_model(conf, wanted)
+        if alt:
+            RESOLVED[("gemini", wanted)] = alt
+            conf["resolved_model"] = alt
+            resp = _post("%s/models/%s:generateContent" % (base, alt), payload, headers, timeout)
     if resp.status_code >= 400:
         raise _err(resp)
     data = resp.json()
