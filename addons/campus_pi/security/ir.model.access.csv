@@ -29,3 +29,5 @@ access_tutoring_teacher,tutoring teacher,model_campus_tutoring,group_campus_teac
 access_aimsg_admin,aimsg admin,model_campus_ai_message,group_campus_admin,1,1,1,1
 access_aimsg_teacher,aimsg teacher,model_campus_ai_message,group_campus_teacher,1,0,0,0
 access_gift_admin,gift admin,model_campus_gift_import,group_campus_teacher,1,1,1,1
+access_agentjob_admin,agent job admin,model_campus_agent_job,group_campus_admin,1,1,1,1
+access_agentjob_teacher,agent job teacher,model_campus_agent_job,group_campus_teacher,1,0,0,0
