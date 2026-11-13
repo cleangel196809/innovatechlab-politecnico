@@ -21,6 +21,8 @@ from xml.etree import ElementTree
 
 import requests
 
+from ..tools import llm
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools import html2plaintext, html_escape
@@ -32,56 +34,16 @@ DEFAULT_MODEL = "claude-sonnet-4-5"
 W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 
 
-def call_messages(conf, system, messages, max_tokens=2000, temperature=0.4, tools=None, timeout=300):
-    """Llama a la API de mensajes de Anthropic. Devuelve (texto, fuentes, stop_reason).
-
-    Con ``tools`` (p. ej. búsqueda web del servidor) continúa los turnos en pausa
-    (``pause_turn``) y recoge las URL consultadas y citadas como fuentes.
+def call_messages(conf, system, messages, max_tokens=2000, temperature=0.4, tools=None, timeout=300,
+                  json_mode=False):
+    """Llama al proveedor configurado (Claude, Gemini, Groq, ChatGPT o compatible). Devuelve
+    (texto, fuentes, stop). ``tools`` verdadero = usar búsqueda web si el proveedor la ofrece.
     No usa el ORM: puede ejecutarse en hilos paralelos."""
-
-    key = conf.get("key")
-    if not key:
-        raise UserError("No hay API key de Anthropic configurada.")
-    payload = {"model": conf.get("model") or DEFAULT_MODEL, "max_tokens": max_tokens, "system": system,
-               "messages": list(messages)}
-    if tools:
-        payload["tools"] = tools
-    else:
-        payload["temperature"] = temperature
-    texts, sources, stop = [], [], None
-    for _turn in range(5):
-        try:
-            resp = requests.post(
-                conf.get("url") or API_URL, json=payload, timeout=timeout,
-                headers={"x-api-key": key, "anthropic-version": "2023-06-01",
-                         "content-type": "application/json"})
-        except requests.RequestException as e:
-            raise UserError("No fue posible contactar al proveedor de IA: %s" % e)
-        if resp.status_code >= 400:
-            _logger.error("Anthropic API %s: %s", resp.status_code, resp.text[:500])
-            raise UserError("Error del proveedor de IA (%s): %s" % (resp.status_code, resp.text[:300]))
-        data = resp.json()
-        stop = data.get("stop_reason")
-        for b in data.get("content", []):
-            if b.get("type") == "text":
-                texts.append(b.get("text", ""))
-                for c in b.get("citations") or []:
-                    if c.get("url"):
-                        sources.append({"title": c.get("title") or c["url"], "url": c["url"]})
-            elif b.get("type") == "web_search_tool_result" and isinstance(b.get("content"), list):
-                for r in b["content"]:
-                    if r.get("url"):
-                        sources.append({"title": r.get("title") or r["url"], "url": r["url"],
-                                        "searched": True})
-        if stop != "pause_turn":
-            break
-        payload["messages"] = payload["messages"] + [{"role": "assistant", "content": data.get("content", [])}]
-    seen, uniq = set(), []
-    for src in sources:
-        if src["url"] not in seen:
-            seen.add(src["url"])
-            uniq.append(src)
-    return "".join(texts), uniq, stop
+    try:
+        return llm.call(conf, system, messages, max_tokens=max_tokens, temperature=temperature,
+                        web_search=bool(tools), json_mode=json_mode, timeout=timeout)
+    except llm.LLMError as e:
+        raise UserError(str(e))
 
 
 class CampusAiAgent(models.AbstractModel):
@@ -89,37 +51,85 @@ class CampusAiAgent(models.AbstractModel):
     _description = "Agentes de IA del campus"
 
     # ------------------------------------------------------------------ LLM
+    # ------------------------------------------------- configuración del proveedor
+    KEY_PARAMS = {"anthropic": ("ANTHROPIC_API_KEY", "campus_pi.anthropic_api_key"),
+                  "gemini": ("GEMINI_API_KEY", "campus_pi.gemini_api_key"),
+                  "groq": ("GROQ_API_KEY", "campus_pi.groq_api_key"),
+                  "openai": ("OPENAI_API_KEY", "campus_pi.openai_api_key"),
+                  "compatible": ("AI_API_KEY", "campus_pi.compatible_api_key")}
+
+    @api.model
+    def _param(self, env_name, param):
+        return (os.environ.get(env_name) or self.env["ir.config_parameter"].sudo().get_param(param) or "").strip()
+
+    @api.model
+    def _key_for(self, provider):
+        env_name, param = self.KEY_PARAMS[provider]
+        key = self._param(env_name, param)
+        if provider == "anthropic" and not key.startswith("sk-ant-"):
+            return ""  # evita fallos con valores como "pendiente"
+        if provider == "compatible" and not key and self.env["ir.config_parameter"].sudo().get_param("campus_pi.ai_base_url"):
+            return "local"  # Ollama / LM Studio no requieren clave
+        return key if len(key) >= 8 or provider == "compatible" else ""
+
+    @api.model
+    def _provider(self):
+        wanted = self._param("AI_PROVIDER", "campus_pi.ai_provider").lower()
+        if wanted in self.KEY_PARAMS and self._key_for(wanted):
+            return wanted
+        for prov in ("anthropic", "gemini", "groq", "openai", "compatible"):
+            if self._key_for(prov):
+                return prov
+        return ""
+
     @api.model
     def _api_key(self):
-        return (os.environ.get("ANTHROPIC_API_KEY")
-                or self.env["ir.config_parameter"].sudo().get_param("campus_pi.anthropic_api_key") or "")
+        prov = self._provider()
+        return self._key_for(prov) if prov else ""
 
     @api.model
     def is_enabled(self):
-        # Sólo se considera válida una clave real de Anthropic (evita fallos con "pendiente", etc.)
-        return self._api_key().strip().startswith("sk-ant-")
+        return bool(self._provider())
 
     @api.model
     def _api_url(self):
-        return (os.environ.get("CAMPUS_ANTHROPIC_URL")
-                or self.env["ir.config_parameter"].sudo().get_param("campus_pi.anthropic_url") or API_URL)
+        prov = self._provider()
+        custom = self._param("CAMPUS_ANTHROPIC_URL", "campus_pi.anthropic_url") if prov == "anthropic" else ""
+        db_url = self.env["ir.config_parameter"].sudo().get_param("campus_pi.ai_base_url") if prov == "compatible" else ""
+        return custom or os.environ.get("AI_BASE_URL") or db_url or llm.PROVIDERS.get(prov, {}).get("url", "")
 
     @api.model
     def _model(self):
-        return (self.env["ir.config_parameter"].sudo().get_param("campus_pi.claude_model") or DEFAULT_MODEL)
+        prov = self._provider()
+        model = self._param("AI_MODEL", "campus_pi.ai_model")
+        if prov == "anthropic":
+            model = model or self._param("CLAUDE_MODEL", "campus_pi.claude_model")
+        return model or llm.PROVIDERS.get(prov, {}).get("model", "")
 
     @api.model
     def _llm_conf(self):
-        """Configuración para llamar al modelo sin tocar la base de datos (apto para hilos)."""
-        return {"key": self._api_key(), "url": self._api_url(), "model": self._model()}
+        """Configuración para llamar al modelo sin tocar la base de datos (apta para hilos)."""
+        prov = self._provider()
+        return {"provider": prov, "key": self._key_for(prov) if prov else "", "url": self._api_url(),
+                "model": self._model()}
 
     @api.model
-    def _messages(self, system, messages, max_tokens=2000, temperature=0.4, tools=None, timeout=300):
-        return call_messages(self._llm_conf(), system, messages, max_tokens, temperature, tools, timeout)
+    def provider_label(self):
+        conf = self._llm_conf()
+        return llm.label(conf) if conf["provider"] else "Sin IA"
 
     @api.model
-    def _call(self, system, messages, max_tokens=2000, temperature=0.4):
-        return self._messages(system, messages, max_tokens=max_tokens, temperature=temperature)[0]
+    def has_web_search(self):
+        prov = self._provider()
+        return bool(prov and llm.PROVIDERS[prov]["search"])
+
+    @api.model
+    def _messages(self, system, messages, max_tokens=2000, temperature=0.4, tools=None, timeout=300, json_mode=False):
+        return call_messages(self._llm_conf(), system, messages, max_tokens, temperature, tools, timeout, json_mode)
+
+    @api.model
+    def _call(self, system, messages, max_tokens=2000, temperature=0.4, json_mode=False):
+        return self._messages(system, messages, max_tokens=max_tokens, temperature=temperature, json_mode=json_mode)[0]
 
     @api.model
     def _json(self, text):
@@ -209,7 +219,7 @@ Respondes SOLO con JSON válido."""
                   "\"competencias\": str, \"producto\": str, \"objetivos\": [str], \"nucleos\": [{\"numero\": int, "
                   "\"titulo\": str, \"temas\": [str], \"objetivo\": str, \"estrategias\": [str], \"criterios\": [str]}], "
                   "\"evaluacion\": [{\"cuando\": str, \"instrumento\": str, \"evidencia\": str}]}\n\nTEXTO:\n%s") % (text or "")[:60000]
-        data = self._json(self._call(self.STRUCTURE_SYSTEM, [{"role": "user", "content": prompt}], 6000, 0.0))
+        data = self._json(self._call(self.STRUCTURE_SYSTEM, [{"role": "user", "content": prompt}], 6000, 0.0, json_mode=True))
         return data if isinstance(data, dict) else {}
 
     # ------------------------------------------------- investigación web
@@ -232,9 +242,13 @@ puede verificar, dilo en "advertencias". Respondes SOLO con JSON válido."""
                   "Para cada núcleo (por número) da 2-4 novedades vigentes, 4-6 conceptos clave y 2-4 recursos "
                   "con URL real. Esquema JSON exacto:\n%s") % (
             fields.Date.today(), hint, instructions or "-", syl_tools.summary(syl, 9000), RESEARCH_SCHEMA)
-        tools = [{"type": "web_search_20250305", "name": "web_search", "max_uses": 10}]
+        search = self.has_web_search()
+        if not search:
+            prompt += ("\n\nNOTA: en este proveedor no tienes búsqueda web. Usa tu conocimiento, no inventes URL "
+                       "que no conozcas con certeza y agrega en «advertencias» que los datos deben verificarse en "
+                       "las páginas oficiales.")
         text, sources, _stop = self._messages(self.RESEARCH_SYSTEM, [{"role": "user", "content": prompt}],
-                                              max_tokens=8000, tools=tools, timeout=420)
+                                              max_tokens=8000, tools=search, timeout=420, json_mode=not search)
         data = self._json(text)
         if not isinstance(data, dict):
             data = {}
@@ -283,7 +297,7 @@ Respondes SOLO con JSON válido, sin texto adicional."""
                 "\n\nIMPORTANTE: la respuesta anterior no fue JSON válido o quedó incompleta; sé más conciso "
                 "(lectura de máximo 800 palabras)." if attempt else "")}]
             text, _src, stop = call_messages(conf, self.NUCLEO_SYSTEM, msgs, max_tokens=16000, temperature=0.5,
-                                             timeout=600)
+                                             timeout=600, json_mode=True)
             try:
                 data = self._json(text)
                 if isinstance(data, dict) and data.get("lectura"):
@@ -312,7 +326,9 @@ Respondes SOLO con JSON válido, sin texto adicional."""
                   "\"correct\": bool, \"feedback\": str}]}]") % (
             missing, cert.name, cert.exam_code or "", course.name, dist,
             "; ".join("%s (%s)" % (n["titulo"], ", ".join(n.get("temas") or [])) for n in syl["nucleos"])[:4000])
-        data = self._json(self._call(self.NUCLEO_SYSTEM, [{"role": "user", "content": prompt}], 12000))
+        prompt = prompt.replace("Responde SOLO un JSON: [", "Responde SOLO un JSON: {\"questions\": [").replace(
+            "\"feedback\": str}]}]", "\"feedback\": str}]}]}")
+        data = self._json(self._call(self.NUCLEO_SYSTEM, [{"role": "user", "content": prompt}], 12000, json_mode=True))
         qs = data if isinstance(data, list) else data.get("questions", [])
         before = len(course.question_ids)
         self._create_questions(course, qs)
@@ -390,50 +406,144 @@ Respondes SOLO con JSON válido, sin texto adicional."""
         return sorted(last.domain_report.items(), key=lambda kv: kv[1].get("pct", 0))[:3]
 
     @api.model
+    def course_insights(self, course):
+        """Dificultades del grupo: promedio por dominio en los simulacros y últimas preguntas al tutor."""
+        attempts = self.env["campus.sim.attempt"].sudo().search([("course_id", "=", course.id), ("state", "=", "done")])
+        acc = {}
+        for a in attempts:
+            for dom, r in (a.domain_report or {}).items():
+                tot = acc.setdefault(dom, [0, 0])
+                tot[0] += r.get("ok", 0)
+                tot[1] += r.get("total", 0)
+        domains = sorted(((d, round(100.0 * v[0] / v[1], 1)) for d, v in acc.items() if v[1]), key=lambda x: x[1])
+        students = course.enrollment_ids.mapped("user_id")
+        asked = self.env["campus.ai.message"].sudo().search([
+            ("course_id", "=", course.id), ("role", "=", "user"), ("user_id", "in", students.ids)],
+            order="id desc", limit=12)
+        return {"attempts": len(attempts), "domains": domains,
+                "questions": [(m.user_id.name, m.content[:220], m.create_date) for m in asked]}
+
+    TUTOR_STUDENT = (
+        "Eres el Tutor IA de InnovaTech Lab (Politécnico Internacional). Acompañas a %s, estudiante del curso. "
+        "Responde EXACTAMENTE lo que pregunta en su último mensaje: si pide una explicación, explica ese tema; "
+        "si pide preguntas, formula preguntas nuevas; nunca repitas una respuesta anterior. Explica con ejemplos "
+        "colombianos cotidianos, cita la lección del curso relacionada cuando exista y termina con una pregunta de "
+        "verificación o un mini-reto. No entregues resuelto un entregable calificable: guía paso a paso. Si la "
+        "pregunta no está en el contenido del curso, respóndela con tu conocimiento y dilo. Español, máximo 250 "
+        "palabras, Markdown sencillo.\nDominios más débiles del estudiante en su último simulacro: %s")
+    TUTOR_TEACHER = (
+        "Eres el Asistente IA del %s del curso en InnovaTech Lab (Politécnico Internacional). Hablas con %s. "
+        "Respondes EXACTAMENTE a su solicitud: preparar sesiones (agenda, actividades, preguntas detonantes), "
+        "explicar un tema con profundidad para enseñarlo, redactar preguntas tipo examen con respuesta correcta y "
+        "retroalimentación, rúbricas, casos y analizar en qué tienen dificultades los estudiantes. Puedes dar "
+        "respuestas completas (no aplica el método socrático). Nunca repitas una respuesta anterior. Español, "
+        "Markdown sencillo, máximo 450 palabras salvo que pida un material más largo.\nDIFICULTADES DEL GRUPO: %s")
+
+    @api.model
     def tutor_reply(self, course, user, message):
         Msg = self.env["campus.ai.message"].sudo()
         Msg.create({"user_id": user.id, "course_id": course.id, "role": "user", "content": message})
         enrollment = course.enrollment_ids.filtered(lambda e: e.user_id == user)[:1]
+        role = user.campus_role
+        staff = role in ("admin", "teacher")
         if not self.is_enabled():
-            answer = self._offline_answer(course, message)
+            answer = self._offline_answer(course, message, enrollment, staff)
         else:
-            weak = self._weak_domains(enrollment) if enrollment else []
-            system = (
-                "Eres el Tutor IA de InnovaTech Lab (Politécnico Internacional). Acompañas a %s en el curso. "
-                "Método socrático: primero pregunta qué ha intentado, explica con ejemplos colombianos "
-                "cotidianos, referencia la lección exacta del curso y termina con una pregunta de verificación "
-                "o un mini-reto. Nunca entregues resuelto un entregable calificable; guía paso a paso. "
-                "Si preguntan por el examen internacional, relaciona el tema con su dominio y peso. "
-                "Responde en español, máximo 250 palabras, con formato Markdown sencillo.\n"
-                "Dominios más débiles del estudiante en su último simulacro: %s\n\nCONTEXTO DEL CURSO:\n%s"
-                "\n\nINSTRUCCIONES DEL DOCENTE: %s") % (
-                user.name, ", ".join("%s (%s%%)" % (d, r.get("pct")) for d, r in weak) or "sin datos",
+            if staff:
+                ins = self.course_insights(course)
+                diff = "Simulacros presentados: %s. Promedio por dominio (de menor a mayor): %s. Últimas preguntas de los " \
+                       "estudiantes al tutor: %s" % (
+                           ins["attempts"], "; ".join("%s %s%%" % d for d in ins["domains"]) or "sin datos",
+                           " | ".join(q[1] for q in ins["questions"][:8]) or "sin datos")
+                system = self.TUTOR_TEACHER % ("administrador" if role == "admin" else "docente", user.name, diff)
+            else:
+                weak = self._weak_domains(enrollment) if enrollment else []
+                system = self.TUTOR_STUDENT % (
+                    user.name, ", ".join("%s (%s%%)" % (d, r.get("pct")) for d, r in weak) or "sin datos")
+            system += "\n\nCONTEXTO DEL CURSO:\n%s\n\nINSTRUCCIONES DEL DOCENTE: %s" % (
                 self._course_context(course), course.tutor_prompt or "-")
-            history = Msg.search([("user_id", "=", user.id), ("course_id", "=", course.id)],
-                                 order="id desc", limit=12)
+            history = Msg.search([("user_id", "=", user.id), ("course_id", "=", course.id)], order="id desc", limit=12)
             msgs = [{"role": m.role, "content": m.content} for m in reversed(history)]
             try:
-                answer = self._call(system, msgs, max_tokens=900)
+                answer = self._call(system, msgs, max_tokens=1600 if staff else 900, temperature=0.6)
+                if not answer.strip():
+                    raise UserError("respuesta vacía")
             except UserError as e:
-                answer = "⚠️ El tutor IA no está disponible en este momento (%s). " % e.args[0][:120] + \
-                         self._offline_answer(course, message)
+                answer = "⚠️ La IA no está disponible en este momento (%s).\n\n" % e.args[0][:160] + \
+                         self._offline_answer(course, message, enrollment, staff)
         Msg.create({"user_id": user.id, "course_id": course.id, "role": "assistant", "content": answer})
         return answer
 
-    def _offline_answer(self, course, message):
-        words = {w for w in re.findall(r"\w{5,}", (message or "").lower())}
+    STOP = set("para como cual cuales donde desde entre sobre porque pero tambien este esta estos estas tiene tienen "
+               "puede pueden hacer explicame explica dime quiero necesito ayuda sobre tema temas curso favor seria "
+               "cuando quien".split())
+
+    def _terms(self, text):
+        import unicodedata
+        t = unicodedata.normalize("NFD", (text or "").lower())
+        t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+        return [w[:7] for w in re.findall(r"[a-z0-9+#]{4,}", t) if w not in self.STOP]
+
+    def _offline_answer(self, course, message, enrollment=None, staff=False):
+        """Respuesta sin IA: busca en el contenido del curso los fragmentos que responden la pregunta."""
+        import random
+        msg = (message or "").lower()
+        rnd = random.Random()
+        if re.search(r"pregunta|examen|quiz|evalúa|evaluame|evalúame|practicar", msg):
+            qs = course.question_ids.filtered(lambda q: len(q.option_ids) >= 2)
+            terms = set(self._terms(message))
+            ranked = sorted(qs, key=lambda q: -len(terms & set(self._terms(q.name + " " + (q.domain or "")))))
+            pool = ranked[:12] if terms else list(qs)
+            pick = rnd.sample(list(pool), min(3, len(pool))) if pool else []
+            if pick:
+                out = ["(Modo sin IA) Practica con estas preguntas del banco del curso:"]
+                for i, q in enumerate(pick, 1):
+                    out.append("\n**%d. %s**" % (i, q.name))
+                    out += ["- %s) %s" % ("ABCD"[k] if k < 4 else k + 1, o.name) for k, o in enumerate(q.option_ids)]
+                    if staff:
+                        good = q.option_ids.filtered("is_correct")[:1]
+                        out.append("  ✔ Respuesta: %s. %s" % (good.name, q.explanation or ""))
+                if not staff:
+                    out.append("\nResponde con la letra de cada una y te digo cómo te fue (o preséntalas en el simulador).")
+                return "\n".join(out)
+        if re.search(r"domini|reforz|débil|debil|cuesta", msg):
+            if staff:
+                ins = self.course_insights(course)
+                if ins["domains"]:
+                    return "(Modo sin IA) Promedio del grupo por dominio en %s simulacros:\n%s" % (
+                        ins["attempts"], "\n".join("- **%s**: %s %%" % d for d in ins["domains"]))
+            elif enrollment:
+                weak = self._weak_domains(enrollment)
+                if weak:
+                    return "(Modo sin IA) Según tu último simulacro, refuerza:\n%s" % "\n".join(
+                        "- **%s**: %s %%" % (d, r.get("pct")) for d, r in weak)
+        terms = self._terms(message)
+        if not terms:
+            return "(Modo sin IA) Cuéntame con más detalle qué tema del curso quieres trabajar."
         scored = []
         for l in course.lesson_ids:
-            txt = (l.name + " " + html2plaintext(l.content or "")).lower()
-            score = sum(1 for w in words if w in txt)
-            if score:
-                scored.append((score, l))
+            text = html2plaintext(l.content or "") + " " + html2plaintext(l.ai_guide or "")
+            for sent in re.split(r"(?<=[.!?:])\s+|\n+", text):
+                sent = sent.strip(" *-•")
+                if len(sent) < 40 or len(sent) > 600:
+                    continue
+                st = set(self._terms(sent))
+                score = sum(1 for w in set(terms) if w in st) + 0.3 * sum(1 for w in set(self._terms(l.name)) if w in terms)
+                if score >= 1:
+                    scored.append((score + rnd.random() * 0.01, sent, l))
         scored.sort(key=lambda x: -x[0])
         if not scored:
-            return ("(Modo sin IA) No encontré una lección relacionada. Agenda una tutoría virtual con tu "
-                    "docente o revisa el núcleo correspondiente.")
-        tips = "\n".join("- **%s** (%s)" % (l.name, l.section_id.name) for _s, l in scored[:3])
-        return "(Modo sin IA) Te recomiendo repasar estas lecciones:\n%s" % tips
+            return ("(Modo sin IA) No encontré ese tema en el contenido del curso. Reformula la pregunta con otras "
+                    "palabras o agenda una tutoría con tu docente.")
+        seen, out = set(), []
+        for _sc, sent, l in scored:
+            if sent in seen:
+                continue
+            seen.add(sent)
+            out.append("- %s _(%s)_" % (sent, l.name))
+            if len(out) == 4:
+                break
+        return "(Modo sin IA) Esto dice el curso sobre tu pregunta:\n%s\n\n¿Quieres que te haga preguntas de práctica sobre este tema?" % "\n".join(out)
 
     @api.model
     def prepare_tutoring_plan(self, tutoring):

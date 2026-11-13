@@ -106,6 +106,7 @@ class CampusAgentJob(models.Model):
     use_ai = fields.Boolean("Con IA")
     deep_research = fields.Boolean("Investigación web", default=True)
     heartbeat = fields.Datetime("Última actividad")
+    provider = fields.Char("Proveedor de IA")
     date_done = fields.Datetime("Terminado el")
 
     # --------------------------------------------------------- utilidades
@@ -149,7 +150,9 @@ class CampusAgentJob(models.Model):
     def _run(self):
         self.ensure_one()
         agent = self.env["campus.ai.agent"].sudo()
-        self.write({"state": "running", "use_ai": agent.is_enabled() and (self.params or {}).get("use_ai", True)})
+        use_ai = agent.is_enabled() and (self.params or {}).get("use_ai", True)
+        self.write({"state": "running", "use_ai": use_ai,
+                    "provider": agent.provider_label() if use_ai else "Sin IA (solo syllabus)"})
         try:
             p = self.params or {}
             # 1. Syllabus
@@ -206,18 +209,22 @@ class CampusAgentJob(models.Model):
             # 3. Investigación
             research = {}
             if self.use_ai and self.deep_research:
-                self._say("Investigando en la web: versión vigente de la certificación, novedades y recursos por núcleo…", 12, "research")
+                self._say("Proveedor de IA: %s." % self.provider, 11)
+                self._say(("Investigando en la web: versión vigente de la certificación, novedades y recursos por núcleo…"
+                           if agent.has_web_search() else
+                           "Investigando (este proveedor no tiene búsqueda web: se usa el conocimiento del modelo y "
+                           "los datos quedan marcados para verificar)…"), 12, "research")
                 try:
                     research = agent.research_course(syl, cert, p.get("instructions"))
                     self._say("Investigación: %d fuentes consultadas." % len(research.get("_sources") or []), 25)
                     for w in research.get("advertencias") or []:
                         self._say("ℹ️ %s" % w)
                 except Exception as e:  # noqa: BLE001
-                    self._say("⚠️ La investigación web falló (%s). Se continúa con el syllabus." % str(e)[:200], 25)
+                    self._say("⚠️ La investigación falló (%s). Se continúa con el syllabus." % str(e)[:200], 25)
                     research = {}
             else:
                 self._say("Investigación web omitida (%s). Se usan las referencias del syllabus." % (
-                    "sin API key de Anthropic" if not self.use_ai else "desactivada"), 25, "research")
+                    "no hay proveedor de IA configurado" if not self.use_ai else "desactivada"), 25, "research")
             if not cert and p.get("cert_mode") == "auto" and research.get("certificacion"):
                 cert = self._certification_from_research(research["certificacion"])
                 if cert:
@@ -233,7 +240,7 @@ class CampusAgentJob(models.Model):
 
             # 5. Núcleos
             self._say("Generando el contenido de %d núcleos%s…" % (
-                len(syl["nucleos"]), " con Claude" if self.use_ai else " a partir del syllabus"), 31, "content")
+                len(syl["nucleos"]), (" con " + (self.provider or "IA")) if self.use_ai else " a partir del syllabus"), 31, "content")
             contents = self._nucleo_contents(syl, cert, research, p)
             n = len(syl["nucleos"])
             for i, (nuc, sec) in enumerate(zip(syl["nucleos"], sections[1:-1])):
@@ -395,7 +402,9 @@ class CampusAgentJob(models.Model):
             except Exception as e:  # noqa: BLE001
                 return {"_error": str(e)[:300]}
 
-        with ThreadPoolExecutor(max_workers=min(4, len(nucleos))) as ex:
+        from ..tools import llm
+        workers = llm.PROVIDERS.get(conf["provider"], {}).get("parallel", 1)
+        with ThreadPoolExecutor(max_workers=max(1, min(workers, len(nucleos)))) as ex:
             results = list(ex.map(work, nucleos))
         out = []
         for nuc, res in zip(nucleos, results):
