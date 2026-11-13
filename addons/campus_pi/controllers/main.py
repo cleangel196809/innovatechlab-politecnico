@@ -412,32 +412,79 @@ class Campus(http.Controller):
             try:
                 if not f or not f.filename:
                     raise UserError(_("Cargue el syllabus (PDF, DOCX o TXT)."))
+                if not f.filename.lower().endswith((".pdf", ".docx", ".txt")):
+                    raise UserError(_("Formato no admitido: use PDF, DOCX o TXT."))
                 if kw.get("date_start") and kw.get("date_end") and kw["date_end"] < kw["date_start"]:
                     raise UserError(_("La fecha de fin no puede ser anterior a la fecha de inicio."))
-                data_b64 = base64.b64encode(f.read())
-                agent = env["campus.ai.agent"].sudo()
-                text = agent.extract_text(data_b64, f.filename)
+                data = f.read()
+                if not data:
+                    raise UserError(_("El archivo del syllabus está vacío."))
+                if len(data) > 15 * 1024 * 1024:
+                    raise UserError(_("El syllabus supera 15 MB."))
                 plist = request.httprequest.form.getlist
-                course = agent.generate_course({
-                    "name": kw.get("name"), "syllabus_text": text,
-                    "certification_id": int(kw.get("certification_id") or 0) or False,
-                    "date_start": kw.get("date_start") or False, "date_end": kw.get("date_end") or False,
-                    "modality": kw.get("modality") or "virtual", "instructions": kw.get("instructions"),
-                    "teacher_ids": [int(x) for x in plist("teacher_ids")],
-                    "student_ids": [int(x) for x in plist("student_ids")],
-                    "syllabus_file": data_b64, "syllabus_filename": f.filename,
+                cert_val = kw.get("certification_id") or ""
+                job = env["campus.agent.job"].sudo().create({
+                    "name": (kw.get("name") or f.filename)[:200],
+                    "syllabus_file": base64.b64encode(data), "syllabus_filename": os.path.basename(f.filename),
+                    "certification_id": int(cert_val) if cert_val.isdigit() else False,
+                    "deep_research": bool(kw.get("deep_research")),
+                    "user_id": request.env.user.id,
+                    "params": {
+                        "name": kw.get("name"), "cert_mode": "auto" if cert_val == "auto" else "fixed",
+                        "date_start": kw.get("date_start") or False, "date_end": kw.get("date_end") or False,
+                        "modality": kw.get("modality") or "virtual", "instructions": (kw.get("instructions") or "")[:4000],
+                        "teacher_ids": [int(x) for x in plist("teacher_ids") if x.isdigit()],
+                        "student_ids": [int(x) for x in plist("student_ids") if x.isdigit()],
+                        "use_ai": True,
+                    },
                 })
-                return request.redirect("/campus/admin/cursos?nuevo=%s" % course.id)
+                job.action_start()
+                return request.redirect("/campus/admin/agente/%s" % job.id)
             except UserError as e:
                 error = e.args[0]
             except Exception as e:  # noqa: BLE001
-                _logger.exception("Error creando curso con IA")
-                error = _("El agente no pudo generar el curso: %s") % e
+                _logger.exception("Error iniciando el agente")
+                error = _("El agente no pudo iniciar: %s") % e
         return self._render("campus_pi.admin_create_course", {
+            "jobs": env["campus.agent.job"].sudo().search([], limit=8),
             "certs": env["campus.certification"].sudo().search([]),
             "teachers": env["res.users"].sudo().search([("groups_id", "in", env.ref("campus_pi.group_campus_teacher").id)]),
             "students": env["res.users"].sudo().search([("groups_id", "in", env.ref("campus_pi.group_campus_student").id)]),
             "error": error})
+
+    def _job(self, job_id):
+        job = request.env["campus.agent.job"].sudo().browse(job_id).exists()
+        if not job:
+            raise NotFound()
+        return job
+
+    @http.route("/campus/admin/agente/<int:job_id>", type="http", auth="user", sitemap=False)
+    def admin_agent_job(self, job_id, **kw):
+        redirect = self._require("admin")
+        if redirect:
+            return redirect
+        from ..models.agent_job import STAGES
+        return self._render("campus_pi.admin_agent_job", {"job": self._job(job_id), "stages": STAGES})
+
+    @http.route("/campus/admin/agente/<int:job_id>/estado", type="json", auth="user", sitemap=False)
+    def admin_agent_job_state(self, job_id, **kw):
+        if self._role() != "admin":
+            raise NotFound()
+        job = self._job(job_id)
+        return {"state": job.state, "progress": job.progress, "stage": job.stage, "log": job.log or "",
+                "error": job.error or "", "stale": bool(job.is_stale()),
+                "course_url": "/campus/curso/%s" % job.course_id.id if job.course_id and job.state == "done" else ""}
+
+    @http.route("/campus/admin/agente/<int:job_id>/reintentar", type="http", auth="user",
+                methods=["POST"], sitemap=False)
+    def admin_agent_job_retry(self, job_id, **kw):
+        redirect = self._require("admin")
+        if redirect:
+            return redirect
+        job = self._job(job_id)
+        if job.state == "error" or job.is_stale():
+            job.action_retry()
+        return request.redirect("/campus/admin/agente/%s" % job.id)
 
     @http.route("/campus/admin/cursos", type="http", auth="user", sitemap=False)
     def admin_courses(self, **kw):
