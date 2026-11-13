@@ -7,7 +7,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 CALLS = []
-MODE = {"fail_research": False, "fail_nucleo": None, "bad_json_once": set(), "pause_done": set()}
+MODE = {"gemini_404_model": None, "fail_research": False, "fail_nucleo": None, "bad_json_once": set(), "pause_done": set()}
 
 
 def text_block(t, citations=None):
@@ -106,12 +106,32 @@ class H(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             MODE.update({k: (set(v) if isinstance(MODE.get(k), set) else v) for k, v in body.items()})
             return self._send(200, {"ok": True, "calls": CALLS[-50:]})
-        payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-        if not self.headers.get("x-api-key", "").startswith("sk-ant-"):
-            return self._send(401, {"type": "error", "error": {"type": "authentication_error", "message": "invalid x-api-key"}})
+        raw = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        fmt = "gemini" if ":generateContent" in self.path else "openai" if self.path.endswith("/chat/completions") else "anthropic"
+        if fmt == "gemini":
+            if not self.headers.get("x-goog-api-key", "").startswith("AIza"):
+                return self._send(400, {"error": {"code": 400, "message": "API key not valid"}})
+            if MODE.get("gemini_404_model") and MODE["gemini_404_model"] in self.path:
+                return self._send(404, {"error": {"code": 404, "message": "model not found"}})
+            payload = {"system": raw["systemInstruction"]["parts"][0]["text"],
+                       "messages": [{"role": "assistant" if c["role"] == "model" else "user",
+                                     "content": c["parts"][0]["text"]} for c in raw["contents"]],
+                       "tools": raw.get("tools"), "model": self.path.split("/models/")[1].split(":")[0]}
+            CALLS.append("gemini:" + payload["model"])
+        elif fmt == "openai":
+            if not self.headers.get("Authorization", "").startswith("Bearer gsk_"):
+                return self._send(401, {"error": {"message": "Invalid API Key"}})
+            payload = {"system": raw["messages"][0]["content"], "messages": raw["messages"][1:], "tools": None,
+                       "model": raw["model"]}
+            CALLS.append("openai:" + raw["model"] + (":json" if raw.get("response_format") else ""))
+        else:
+            payload = raw
+            if not self.headers.get("x-api-key", "").startswith("sk-ant-"):
+                return self._send(401, {"type": "error", "error": {"type": "authentication_error", "message": "invalid x-api-key"}})
+        self._fmt = fmt
         system = payload.get("system") or ""
         prompt = json.dumps(payload["messages"][0]["content"], ensure_ascii=False)
-        kind = ("structure" if "Extraes la estructura" in system else "research" if payload.get("tools") else "bank" if "Genera " in prompt and "por dominio" in prompt
+        kind = ("structure" if "Extraes la estructura" in system else "research" if (payload.get("tools") or "Agente Investigador" in system) else "bank" if "Genera " in prompt and "por dominio" in prompt
                 else "nucleo" if "UN núcleo" in system else "chat")
         CALLS.append(kind)
         time.sleep(0.3)
@@ -132,9 +152,25 @@ class H(BaseHTTPRequestHandler):
         elif kind == "bank":
             res = bank(payload)
         else:
-            res = {"stop_reason": "end_turn", "content": [text_block("Respuesta simulada del tutor IA.")]}
-        res.update({"id": "msg_mock", "type": "message", "role": "assistant", "model": payload.get("model")})
-        self._send(200, res)
+            last = payload["messages"][-1]["content"]
+            res = {"stop_reason": "end_turn", "content": [text_block("Respuesta (%s) sobre: %s" % (
+                "docente" if "Asistente IA del" in system else "estudiante", last[:200]))]}
+        if fmt == "anthropic":
+            res.update({"id": "msg_mock", "type": "message", "role": "assistant", "model": payload.get("model")})
+            return self._send(200, res)
+        text = "".join(b.get("text", "") for b in res["content"] if b.get("type") == "text")
+        if res.get("stop_reason") == "pause_turn":  # otros proveedores no pausan: devolver el resultado final
+            res = research(payload)
+            text = "".join(b.get("text", "") for b in res["content"] if b.get("type") == "text")
+        text = text.replace("```json", "").replace("```", "")
+        if fmt == "gemini":
+            cand = {"content": {"role": "model", "parts": [{"text": text}]},
+                    "finishReason": "MAX_TOKENS" if res.get("stop_reason") == "max_tokens" else "STOP"}
+            if payload.get("tools"):
+                cand["groundingMetadata"] = {"groundingChunks": [{"web": {"uri": "https://www.comptia.org/en-us/certifications/security/v8/", "title": "comptia.org"}}]}
+            return self._send(200, {"candidates": [cand]})
+        return self._send(200, {"choices": [{"message": {"role": "assistant", "content": text},
+                                             "finish_reason": "length" if res.get("stop_reason") == "max_tokens" else "stop"}]})
 
     def _send(self, code, body):
         raw = json.dumps(body).encode()

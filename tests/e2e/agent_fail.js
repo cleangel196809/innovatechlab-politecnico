@@ -12,7 +12,7 @@ const ctl = (body)=>fetch('http://127.0.0.1:9911/control',{method:'POST',headers
   await ctl({fail_research:true, fail_nucleo:3});
   let st=await run('ciber.docx','Fallos IA'); let log=await a.$eval('#cp-job-log',e=>e.textContent);
   ok('IA con fallos: el curso igual se crea', st==='done', st);
-  ok('registra fallo de investigación', /investigación web falló/.test(log));
+  ok('registra fallo de investigación', /investigación falló/.test(log));
   ok('núcleo 3 cae a contenido base', /Núcleo 3: la IA falló/.test(log));
   await ctl({fail_research:false, fail_nucleo:null});
   st=await run('roto.docx','Archivo roto'); log=await a.$eval('#cp-job-log',e=>e.textContent);
