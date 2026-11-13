@@ -49,5 +49,34 @@ if [ "${ODOO_UPDATE:-0}" = "1" ]; then
   EXTRA="-u campus_pi"   # aplica cambios del módulo en cada despliegue
 fi
 
-# -i instala el módulo sólo si aún no está instalado (primer arranque inicializa la BD)
-exec odoo -c "$CONF" -d "$PGDATABASE" -i campus_pi --load-language=es_CO $EXTRA
+# -i sólo en el primer arranque: si se pasa con el módulo ya instalado, Odoo recarga los
+# datos iniciales en modo "init" en cada arranque y duplica las opciones de las preguntas.
+STATE="$(python3 - <<'PY'
+import os
+try:
+    import psycopg2
+    con = psycopg2.connect(host=os.environ["PGHOST"], port=os.environ["PGPORT"], user=os.environ["PGUSER"],
+                           password=os.environ["PGPASSWORD"], dbname=os.environ["PGDATABASE"],
+                           sslmode=os.environ.get("PGSSLMODE", "require"), connect_timeout=20)
+    cur = con.cursor()
+    cur.execute("SELECT to_regclass('ir_module_module') IS NOT NULL")
+    if cur.fetchone()[0]:
+        cur.execute("SELECT state FROM ir_module_module WHERE name = 'campus_pi'")
+        row = cur.fetchone()
+        print(row[0] if row else "none")
+    else:
+        print("none")
+except Exception as e:
+    print("unknown")
+PY
+)"
+echo "Estado del módulo campus_pi: ${STATE}"
+if [ "$STATE" = "installed" ] || [ "$STATE" = "to upgrade" ]; then
+  INIT=""
+elif [ "$STATE" = "unknown" ]; then
+  INIT=""   # sin poder consultar la BD, se evita reinstalar; -u aplica los cambios si ODOO_UPDATE=1
+else
+  INIT="-i campus_pi --load-language=es_CO"
+  EXTRA=""
+fi
+exec odoo -c "$CONF" -d "$PGDATABASE" $INIT $EXTRA
