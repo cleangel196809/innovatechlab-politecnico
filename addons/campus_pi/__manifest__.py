@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "InnobaTech Lab · Campus PI",
+    "name": "InnovaTech Lab · Campus PI",
     "summary": "Plataforma de innovación tecnológica y laboratorio de capacitación "
                "para obtener certificaciones internacionales (Politécnico Internacional)",
     "description": """
@@ -13,10 +13,10 @@ Campus virtual de microcertificaciones con agentes de IA
 * Tutoría virtual con docente y tutoría con agente de IA (Claude)
 * Microcredenciales verificables públicamente
 """,
-    "version": "17.0.1.0.0",
+    "version": "17.0.1.1.0",
     "category": "Education",
-    "author": "InnobaTech Lab - Politécnico Internacional",
-    "website": "https://github.com/cleangel196809/innobatechlab-politecnico",
+    "author": "InnovaTech Lab - Politécnico Internacional",
+    "website": "https://github.com/cleangel196809/innovatechlab-politecnico",
     "license": "LGPL-3",
     "depends": ["base", "web", "mail"],
     "data": [
@@ -41,6 +41,7 @@ Campus virtual de microcertificaciones con agentes de IA
         "views/templates_layout.xml",
         "views/templates_login.xml",
         "views/templates_dashboard.xml",
+        "views/templates_lesson_material.xml",
         "views/templates_course.xml",
         "views/templates_admin.xml",
         "views/templates_value.xml",
