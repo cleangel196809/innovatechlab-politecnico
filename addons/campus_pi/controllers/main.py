@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import base64
 import logging
+import os
+import re
 from datetime import datetime, timedelta
 
 import pytz
@@ -12,6 +14,7 @@ from odoo.exceptions import AccessDenied, UserError
 from odoo.http import request
 
 _logger = logging.getLogger(__name__)
+MAX_UPLOAD_MB = 40  # Neon gratis tiene 0,5 GB: los videos largos deben ir por enlace (YouTube/Drive)
 
 
 def _uid_is_public():
@@ -150,6 +153,7 @@ class Campus(http.Controller):
         done = set(enrollment.progress_ids.mapped("lesson_id").ids) if enrollment else set()
         return self._render("campus_pi.course_lessons", {
             "course": course, "enrollment": enrollment, "done": done, "tab": "lessons", "lesson": lesson,
+            "can_edit": self._can_edit_course(course), "max_mb": MAX_UPLOAD_MB,
             "prev": lessons[idx - 1] if idx > 0 else None,
             "next": lessons[idx + 1] if idx + 1 < len(lessons) else None})
 
@@ -175,6 +179,74 @@ class Campus(http.Controller):
         return request.make_response(data, [
             ("Content-Type", "application/octet-stream"),
             ("Content-Disposition", http.content_disposition(lesson.attachment_name or "archivo"))])
+
+    @http.route("/campus/leccion/<int:lesson_id>/ver", type="http", auth="user", sitemap=False)
+    def lesson_view_file(self, lesson_id, **kw):
+        """Sirve el archivo de la lección para verlo embebido (imagen, PDF, video con Range)."""
+        lesson = request.env["campus.lesson"].sudo().browse(lesson_id).exists()
+        if not lesson or not lesson.attachment:
+            raise NotFound()
+        self._course(lesson.course_id.id)
+        stream = request.env["ir.binary"].sudo()._get_stream_from(
+            lesson, "attachment", filename=lesson.attachment_name or "archivo",
+            mimetype=lesson.attachment_mimetype())
+        return stream.get_response(as_attachment=False, immutable=False)
+
+    def _can_edit_course(self, course):
+        user = request.env.user
+        return user.campus_role == "admin" or (user.campus_role == "teacher" and user in course.teacher_ids)
+
+    @http.route("/campus/leccion/<int:lesson_id>/recursos", type="http", auth="user",
+                methods=["POST"], sitemap=False)
+    def lesson_resources(self, lesson_id, **kw):
+        """El docente o el administrador cargan video, infografía o archivo desde el campus."""
+        lesson = request.env["campus.lesson"].sudo().browse(lesson_id).exists()
+        if not lesson:
+            raise NotFound()
+        course, _enr = self._course(lesson.course_id.id)
+        if not self._can_edit_course(course):
+            raise NotFound()
+        base = "/campus/curso/%s/leccion/%s" % (course.id, lesson.id)
+        vals = {}
+        for k in ("video_url", "resource_url"):
+            if k in kw:
+                v = (kw.get(k) or "").strip()
+                if v and re.match(r"^[a-z][a-z0-9+.-]*:(?!\d)", v, re.I) and not re.match(r"^https?://", v, re.I):
+                    return request.redirect(base + "?recurso=url_invalida#recursos")
+                if v and not re.match(r"^https?://", v, re.I):
+                    v = "https://" + v
+                if v and not re.match(r"^https?://[^\s<>\"']+$", v, re.I):
+                    return request.redirect(base + "?recurso=url_invalida#recursos")
+                vals[k] = v or False
+        if kw.get("remove_file"):
+            vals.update({"attachment": False, "attachment_name": False})
+        f = request.httprequest.files.get("file")
+        if f and f.filename:
+            data = f.read()
+            if not data:
+                return request.redirect(base + "?recurso=vacio#recursos")
+            if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
+                return request.redirect(base + "?recurso=grande#recursos")
+            vals.update({"attachment": base64.b64encode(data),
+                         "attachment_name": os.path.basename(f.filename)[:200]})
+        if vals:
+            lesson.write(vals)
+        return request.redirect(base + "?recurso=ok#recursos")
+
+    @http.route("/campus/leccion/<int:lesson_id>/practica", type="json", auth="user", sitemap=False)
+    def lesson_quiz_check(self, lesson_id, question_id=0, option_id=0, **kw):
+        """Corrige una pregunta del cuestionario de práctica sin exponer la clave en la página."""
+        lesson = request.env["campus.lesson"].sudo().browse(int(lesson_id)).exists()
+        if not lesson:
+            raise NotFound()
+        self._course(lesson.course_id.id)
+        q = lesson.quiz_questions().filtered(lambda x: x.id == int(question_id or 0))
+        if not q:
+            return {"error": "Pregunta no válida"}
+        opt = q.option_ids.filtered(lambda o: o.id == int(option_id or 0))
+        correct = q.option_ids.filtered("is_correct")[:1]
+        return {"ok": bool(opt and opt.is_correct), "correct_id": correct.id,
+                "feedback": (opt.feedback if opt else "") or "", "explanation": q.explanation or ""}
 
     # ---------------------------------------------------------- simulador
     @http.route("/campus/curso/<int:course_id>/simulador", type="http", auth="user", sitemap=False)
@@ -340,6 +412,8 @@ class Campus(http.Controller):
             try:
                 if not f or not f.filename:
                     raise UserError(_("Cargue el syllabus (PDF, DOCX o TXT)."))
+                if kw.get("date_start") and kw.get("date_end") and kw["date_end"] < kw["date_start"]:
+                    raise UserError(_("La fecha de fin no puede ser anterior a la fecha de inicio."))
                 data_b64 = base64.b64encode(f.read())
                 agent = env["campus.ai.agent"].sudo()
                 text = agent.extract_text(data_b64, f.filename)
