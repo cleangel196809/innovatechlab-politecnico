@@ -58,7 +58,7 @@
             <section class="cp-hero">
                 <div>
                     <p class="cp-eyebrow">Panel docente</p>
-                    <h1>¡Hola, profe <t t-esc="user.name.split(' ')[0]"/>!</h1>
+                    <h1>¡Hola, docente <t t-esc="user.name.split(' ')[0]"/>!</h1>
                     <p>Tus cursos, las sesiones próximas, las tutorías por confirmar y los estudiantes que necesitan acompañamiento.</p>
                 </div>
             </section>

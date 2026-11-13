@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Material principal de la lección: lo cargado por el docente o, si no hay,
+         material generado a partir del núcleo (nunca se muestra en blanco). -->
+    <template id="lesson_material" name="Lección - material">
+        <t t-set="m" t-value="lesson.media()"/>
+        <t t-set="lt" t-value="lesson.lesson_type"/>
+
+        <!-- 1. Material cargado -->
+        <t t-if="m">
+            <div t-if="m['kind'] == 'iframe'" class="cp-video">
+                <iframe t-att-src="m['src']" t-att-title="lesson.name" loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                        allowfullscreen="allowfullscreen" referrerpolicy="strict-origin-when-cross-origin" frameborder="0"/>
+            </div>
+            <div t-elif="m['kind'] == 'video'" class="cp-video">
+                <video t-att-src="m['src']" controls="controls" preload="metadata" playsinline="playsinline">
+                    Tu navegador no puede reproducir este video. <a t-att-href="m['src']">Descárgalo aquí</a>.
+                </video>
+            </div>
+            <div t-elif="m['kind'] == 'audio'" class="cp-card-inner"><audio t-att-src="m['src']" controls="controls" style="width:100%"/></div>
+            <figure t-elif="m['kind'] == 'image'" class="cp-figure">
+                <a t-att-href="m['src']" target="_blank" title="Ver en tamaño completo">
+                    <img t-att-src="m['src']" t-att-alt="lesson.name" loading="lazy"/>
+                </a>
+                <figcaption class="cp-muted cp-small">Haz clic en la imagen para verla en tamaño completo.</figcaption>
+            </figure>
+            <div t-elif="m['kind'] == 'pdf'" class="cp-pdf">
+                <iframe t-att-src="m['src']" t-att-title="lesson.name" frameborder="0"/>
+                <p class="cp-small cp-muted">¿No se ve el documento? <a t-att-href="m['src']" target="_blank">Ábrelo en una pestaña nueva ↗</a></p>
+            </div>
+        </t>
+
+        <!-- 2. Material generado -->
+        <t t-elif="lt == 'infografia'">
+            <t t-set="ig" t-value="lesson.infographic()"/>
+            <div class="cp-infographic">
+                <div class="cp-ig-head">
+                    <span class="cp-ig-badge">Infografía del núcleo</span>
+                    <h3 t-esc="ig['title']"/>
+                    <p t-if="ig['objective']" t-esc="ig['objective']"/>
+                    <div class="cp-ig-meta">
+                        <span>⏱️ <t t-esc="ig['minutes']"/> min de trabajo</span>
+                        <span t-if="ig['cert']">🏅 <t t-esc="ig['cert']"/></span>
+                    </div>
+                </div>
+                <div class="cp-ig-grid" t-if="ig['points']">
+                    <div t-foreach="ig['points']" t-as="p" class="cp-ig-point">
+                        <span class="cp-ig-num" t-esc="p_index + 1"/>
+                        <h4 t-esc="p['title']"/>
+                        <p t-if="p['text']" t-esc="p['text']"/>
+                    </div>
+                </div>
+                <div class="cp-ig-route" t-if="ig['route']">
+                    <h4>Ruta del núcleo</h4>
+                    <ol>
+                        <li t-foreach="ig['route']" t-as="r">
+                            <span t-esc="type_ico.get(r['type'], '•')"/>
+                            <b t-esc="r['name']"/>
+                            <small><t t-esc="r['min']"/> min</small>
+                        </li>
+                    </ol>
+                </div>
+                <div class="cp-ig-foot" t-if="ig['domains']">
+                    <span>Dominios del examen:</span>
+                    <span t-foreach="ig['domains']" t-as="d" class="cp-chip" t-esc="d"/>
+                </div>
+            </div>
+            <p class="cp-small cp-muted">Infografía generada por el agente a partir del contenido del núcleo.<t t-if="can_edit"> Puedes reemplazarla cargando una imagen o un PDF abajo.</t></p>
+        </t>
+
+        <t t-elif="lt in ('video', 'presentacion')">
+            <t t-set="slides" t-value="lesson.slides()"/>
+            <div class="cp-deck" t-att-data-narrate="'1' if lt == 'video' else None">
+                <div class="cp-deck-stage">
+                    <section t-foreach="slides" t-as="sl" t-attf-class="cp-slide #{'active' if sl_first else ''}"
+                             t-att-data-say="lesson.narration(sl)">
+                        <small class="cp-slide-num"><t t-esc="sl_index + 1"/> / <t t-esc="len(slides)"/></small>
+                        <h3 t-esc="sl['title']"/>
+                        <p t-if="sl['lead']" class="cp-slide-lead" t-esc="sl['lead']"/>
+                        <ul t-if="sl['points']"><li t-foreach="sl['points']" t-as="pt" t-esc="pt"/></ul>
+                    </section>
+                </div>
+                <div class="cp-deck-bar">
+                    <button type="button" class="cp-btn cp-btn-ghost cp-btn-sm" data-deck="prev" aria-label="Anterior">◀</button>
+                    <button t-if="lt == 'video'" type="button" class="cp-btn cp-btn-primary cp-btn-sm" data-deck="play">▶ Reproducir con narración</button>
+                    <div class="cp-deck-dots"/>
+                    <button type="button" class="cp-btn cp-btn-ghost cp-btn-sm" data-deck="next" aria-label="Siguiente">▶</button>
+                </div>
+            </div>
+            <p class="cp-small cp-muted">
+                <t t-if="lt == 'video'">Video generado por el agente: presentación narrada del tema (usa la voz de tu navegador).
+                    <a t-att-href="lesson.youtube_search_url()" target="_blank" rel="noopener">Ver videos sobre este tema en YouTube ↗</a></t>
+                <t t-else="">Presentación generada por el agente a partir del contenido del núcleo. Usa las flechas o el teclado (← →).</t>
+                <t t-if="can_edit"> Puedes reemplazarla cargando un video, un enlace o un archivo abajo.</t>
+            </p>
+        </t>
+
+        <t t-elif="lesson.needs_guide()">
+            <t t-set="crs" t-value="lesson.section_id.course_id"/>
+            <div class="cp-guide">
+                <t t-if="lt == 'lectura'">
+                    <h4>🧭 Guía del curso</h4>
+                    <div t-if="crs.description" class="cp-rich" t-out="crs.description"/>
+                    <div t-if="crs.outcomes"><h5>Resultados de aprendizaje</h5><div class="cp-rich" t-out="crs.outcomes"/></div>
+                    <h5>Ruta del curso</h5>
+                    <table class="cp-table">
+                        <tr><th>Sección</th><th>Fechas</th><th>Objetivo</th><th>Actividades</th></tr>
+                        <tr t-foreach="crs.section_ids" t-as="sc">
+                            <td><b t-esc="sc.name"/></td>
+                            <td class="cp-small"><t t-if="sc.date_start"><t t-esc="sc.date_start"/> → <t t-esc="sc.date_end"/></t></td>
+                            <td class="cp-small" t-esc="sc.objective"/>
+                            <td class="cp-small"><t t-esc="len(sc.lesson_ids)"/></td>
+                        </tr>
+                    </table>
+                    <p t-if="crs.certification_id" class="cp-small">🏅 Meta: <b t-esc="crs.certification_id.name"/>. Para obtener la microcredencial completa el 100 % de las lecciones y aprueba el simulador con el puntaje mínimo.</p>
+                </t>
+                <t t-else="">
+                    <h4>🪞 Reflexiona sobre tu proceso</h4>
+                    <p>Responde para ti (o conversa con el tutor IA) estas preguntas antes de marcar la actividad como completada:</p>
+                    <ol>
+                        <li>¿Qué resultado de aprendizaje del curso dominas mejor y cuál te cuesta más?</li>
+                        <li t-foreach="crs.section_ids.filtered(lambda x: x.objective)[:5]" t-as="sc">Sobre «<t t-esc="sc.name"/>»: ¿qué evidencia tienes de que lograste el objetivo «<t t-esc="sc.objective"/>»?</li>
+                        <li>En el simulador, ¿qué dominio del examen debes reforzar y qué harás esta semana para lograrlo?</li>
+                        <li>¿Qué estrategia de estudio te funcionó y cuál cambiarías?</li>
+                    </ol>
+                </t>
+            </div>
+        </t>
+
+        <t t-elif="lt == 'quiz'">
+            <t t-set="qs" t-value="lesson.quiz_questions()"/>
+            <div t-if="qs" class="cp-practice" t-att-data-url="'/campus/leccion/%s/practica' % lesson.id">
+                <h4>📝 Práctica rápida (<t t-esc="len(qs)"/> preguntas)</h4>
+                <p class="cp-small cp-muted">Elige una opción y recibe retroalimentación inmediata. No afecta tu nota; el simulador completo está en la pestaña Simulador.</p>
+                <div t-foreach="qs" t-as="q" class="cp-practice-q" t-att-data-q="q.id">
+                    <p><b><t t-esc="q_index + 1"/>.</b> <t t-esc="q.name"/></p>
+                    <button t-foreach="q.option_ids" t-as="o" type="button" class="cp-practice-opt" t-att-data-o="o.id" t-esc="o.name"/>
+                    <div class="cp-practice-fb"/>
+                </div>
+                <a t-attf-href="/campus/curso/#{course.id}/simulador" class="cp-btn cp-btn-ghost">Ir al simulador completo →</a>
+            </div>
+            <div t-else="" class="cp-empty">El banco de preguntas de este curso aún está vacío. El docente puede importarlas (GIFT) o generarlas con el agente IA.</div>
+        </t>
+    </template>
+
+    <!-- Formulario para que el docente/administrador cargue el material -->
+    <template id="lesson_resources_form" name="Lección - recursos (docente)">
+        <details class="cp-resources" id="recursos" t-att-open="'open' if request.params.get('recurso') else None">
+            <summary>⚙️ Cargar o cambiar el material de esta lección (solo docentes y administradores)</summary>
+            <t t-set="rmsg" t-value="request.params.get('recurso')"/>
+            <div t-if="rmsg == 'ok'" class="cp-alert cp-alert-ok">Material actualizado.</div>
+            <div t-if="rmsg == 'grande'" class="cp-alert cp-alert-error">El archivo supera <t t-esc="max_mb"/> MB. Para videos largos súbelos a YouTube (no listado) o Google Drive y pega el enlace.</div>
+            <div t-if="rmsg == 'vacio'" class="cp-alert cp-alert-error">El archivo está vacío.</div>
+            <div t-if="rmsg == 'url_invalida'" class="cp-alert cp-alert-error">El enlace no es válido.</div>
+            <form method="post" enctype="multipart/form-data" t-attf-action="/campus/leccion/#{lesson.id}/recursos" class="cp-form">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <label>Enlace de video (YouTube, Vimeo, Google Drive o MP4)</label>
+                <input type="text" name="video_url" t-att-value="lesson.video_url or ''" placeholder="https://www.youtube.com/watch?v=…"/>
+                <label>Recurso externo (página, imagen o PDF en línea)</label>
+                <input type="text" name="resource_url" t-att-value="lesson.resource_url or ''" placeholder="https://…"/>
+                <label>Archivo (infografía en imagen o PDF, video MP4 corto, presentación PPTX…)</label>
+                <input type="file" name="file" accept="image/*,video/*,audio/*,.pdf,.ppt,.pptx,.doc,.docx,.xlsx,.zip"/>
+                <p class="cp-small cp-muted">Máximo <t t-esc="max_mb"/> MB. Las imágenes, PDF y videos se ven dentro de la lección.
+                    <t t-if="lesson.attachment">Archivo actual: <b t-esc="lesson.attachment_name or 'archivo'"/>
+                    <label class="cp-inline"><input type="checkbox" name="remove_file" value="1"/> quitarlo</label></t></p>
+                <button type="submit" class="cp-btn cp-btn-primary">Guardar material</button>
+            </form>
+        </details>
+    </template>
+</odoo>

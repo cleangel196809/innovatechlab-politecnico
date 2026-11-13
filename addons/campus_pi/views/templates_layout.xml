@@ -6,7 +6,7 @@
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <title><t t-esc="title or 'InnobaTech Lab · Politécnico Internacional'"/></title>
+                <title><t t-esc="title or 'InnovaTech Lab · Politécnico Internacional'"/></title>
                 <link rel="icon" href="/campus_pi/static/src/img/escudo_pi.png"/>
                 <link rel="preconnect" href="https://fonts.googleapis.com"/>
                 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
@@ -17,7 +17,8 @@
                 <header class="cp-topbar" t-if="not hide_nav">
                     <a href="/campus" class="cp-brand">
                         <img src="/campus_pi/static/src/img/escudo_pi.png" alt="Escudo Politécnico Internacional"/>
-                        <span><b>InnobaTech Lab</b><small>Politécnico Internacional</small></span>
+                        <img src="/campus_pi/static/src/img/innovatech_icon.png" class="cp-brand-lab" alt="InnovaTech Lab"/>
+                        <span><b>InnovaTech Lab</b><small>Politécnico Internacional</small></span>
                     </a>
                     <nav class="cp-nav">
                         <a href="/campus">Inicio</a>
@@ -27,7 +28,7 @@
                             <a href="/campus/admin/cursos">Cursos</a>
                         </t>
                         <t t-if="role in ('admin', 'teacher')"><a href="/web#action=campus_pi.action_course">Configurar (Odoo)</a></t>
-                        <a href="/campus/valor">¿Por qué no Moodle?</a>
+                        <t t-if="role == 'admin'"><a href="/campus/valor">¿Por qué no Moodle?</a></t>
                     </nav>
                     <div class="cp-user">
                         <span class="cp-avatar" t-esc="(user.name or '?')[:1]"/>
@@ -39,7 +40,7 @@
                     <t t-out="0"/>
                 </main>
                 <footer class="cp-footer" t-if="not hide_nav">
-                    Politécnico Internacional · <i>Toda una experiencia</i> · InnobaTech Lab — Plataforma de innovación tecnológica y laboratorio de capacitación
+                    Politécnico Internacional · <i>Toda una experiencia</i> · InnovaTech Lab — Laboratorio de Innovación Tecnológica para el Aprendizaje
                     <span t-if="not ai_enabled" class="cp-pill cp-pill-warn">Agente IA en modo sin API key</span>
                 </footer>
             </body>

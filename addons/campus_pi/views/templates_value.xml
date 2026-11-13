@@ -6,8 +6,8 @@
             <section class="cp-hero cp-hero-xl">
                 <div>
                     <p class="cp-eyebrow">Propuesta de valor</p>
-                    <h1>¿Por qué InnobaTech Lab para certificaciones y no el aula Moodle?</h1>
-                    <p>El aula virtual Moodle del Politécnico sigue siendo el lugar de los programas con créditos. InnobaTech Lab es otra cosa: un <b>laboratorio orientado a resultados medibles</b> — que el estudiante apruebe una certificación internacional — y conectado con los procesos de la institución en Odoo.</p>
+                    <h1>¿Por qué InnovaTech Lab para certificaciones y no el aula Moodle?</h1>
+                    <p>El aula virtual Moodle del Politécnico sigue siendo el lugar de los programas con créditos. InnovaTech Lab es otra cosa: un <b>laboratorio orientado a resultados medibles</b> — que el estudiante apruebe una certificación internacional — y conectado con los procesos de la institución en Odoo.</p>
                 </div>
             </section>
 
@@ -24,7 +24,7 @@
             <h2 class="cp-section-title">Comparativo honesto</h2>
             <div class="cp-card">
                 <table class="cp-table cp-compare">
-                    <tr><th>Capacidad</th><th>Aula Moodle PI</th><th>InnobaTech Lab (Odoo)</th></tr>
+                    <tr><th>Capacidad</th><th>Aula Moodle PI</th><th>InnovaTech Lab (Odoo)</th></tr>
                     <tr><td>Diseño del curso</td><td>Manual, por el docente o diseñador</td><td>Agente IA desde el syllabus + revisión docente</td></tr>
                     <tr><td>Cuestionarios</td><td>Muy completos (banco, GIFT, aleatorios)</td><td>Simulador por dominios de la certificación; <b>importa GIFT desde Moodle</b></td></tr>
                     <tr><td>IA</td><td>Moodle 4.5+ trae un subsistema de IA y existen plugins, pero son funciones aisladas que hay que configurar</td><td>Agentes integrados en el flujo: diseño, tutoría, plan de refuerzo, sesiones</td></tr>
@@ -32,13 +32,13 @@
                     <tr><td>Procesos institucionales</td><td>Requiere integraciones externas</td><td>Nativos en Odoo (CRM, ventas, facturación, RR. HH.)</td></tr>
                     <tr><td>Madurez como LMS</td><td><b>Mayor</b>: SCORM, H5P, foros y calificador avanzados</td><td>Menor: es un MVP enfocado en certificación</td></tr>
                 </table>
-                <p class="cp-small cp-muted">Recomendación: no reemplazar Moodle. Usar InnobaTech Lab para educación continua, microcertificaciones y preparación de exámenes internacionales.</p>
+                <p class="cp-small cp-muted">Recomendación: no reemplazar Moodle. Usar InnovaTech Lab para educación continua, microcertificaciones y preparación de exámenes internacionales.</p>
             </div>
 
             <h2 class="cp-section-title">Proceso para demostrar el valor (piloto de 1 semestre)</h2>
             <div class="cp-steps">
                 <div class="cp-step"><b>1</b><h4>Línea base</h4><p>Elegir 2 asignaturas (p. ej. Backend y Front-End). Medir en Moodle: horas de montaje del aula, tasa de finalización y notas.</p></div>
-                <div class="cp-step"><b>2</b><h4>Cohortes paralelas</h4><p>Un grupo sigue en Moodle y otro usa InnobaTech Lab con el mismo syllabus y docente.</p></div>
+                <div class="cp-step"><b>2</b><h4>Cohortes paralelas</h4><p>Un grupo sigue en Moodle y otro usa InnovaTech Lab con el mismo syllabus y docente.</p></div>
                 <div class="cp-step"><b>3</b><h4>Medir 6 indicadores</h4><p>Horas docentes de diseño · finalización · puntaje promedio del simulador · tiempo de respuesta a dudas · satisfacción (NPS) · % que presenta y aprueba el examen oficial.</p></div>
                 <div class="cp-step"><b>4</b><h4>Costo-beneficio</h4><p>Costo por estudiante (hosting + API de IA + horas docentes) frente a ingresos por microcertificaciones vendidas a empresas y egresados.</p></div>
                 <div class="cp-step"><b>5</b><h4>Decisión</h4><p>Presentar los resultados al comité académico y decidir si se escala a más programas.</p></div>

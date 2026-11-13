@@ -79,8 +79,8 @@
                                 <div t-if="lesson.location">📍 <t t-esc="lesson.location"/></div>
                                 <a t-if="lesson.meeting_url" t-att-href="lesson.meeting_url" target="_blank" class="cp-btn cp-btn-primary cp-btn-sm">Unirse a la sesión</a>
                             </div>
-                            <div t-if="lesson.video_url" class="cp-video"><iframe t-att-src="lesson.video_url" allowfullscreen="allowfullscreen" frameborder="0"/></div>
-                            <div class="cp-rich" t-out="lesson.content"/>
+                            <t t-call="campus_pi.lesson_material"/>
+                            <div t-if="lesson.show_content()" class="cp-rich" t-out="lesson.content"/>
                             <details t-if="lesson.ai_guide" class="cp-ai-guide" open="open">
                                 <summary>🤖 Cómo te acompaña el agente IA en esta sesión</summary>
                                 <div t-out="lesson.ai_guide"/>
@@ -90,6 +90,7 @@
                                 <a t-if="lesson.attachment" t-attf-href="/campus/leccion/#{lesson.id}/archivo" class="cp-btn cp-btn-ghost">Descargar archivo</a>
                                 <a t-attf-href="/campus/curso/#{course.id}/tutor-ia?q=#{'Explícame la lección: ' + lesson.name}" class="cp-btn cp-btn-ghost">🤖 Preguntar al tutor IA</a>
                             </div>
+                            <t t-if="can_edit" t-call="campus_pi.lesson_resources_form"/>
                             <div class="cp-lesson-nav">
                                 <a t-if="prev" t-attf-href="/campus/curso/#{course.id}/leccion/#{prev.id}" class="cp-btn cp-btn-ghost">← Anterior</a>
                                 <span/>
