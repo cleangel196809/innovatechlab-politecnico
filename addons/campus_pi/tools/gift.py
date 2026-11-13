@@ -36,10 +36,18 @@ def _split_unescaped(s, chars):
 
 
 def parse_gift(text):
+    """Devuelve preguntas de opción múltiple. Las líneas ``$CATEGORY: Dominio | Núcleo 2`` asignan
+    el dominio de la certificación (y opcionalmente el núcleo) a las preguntas siguientes."""
     text = re.sub(r"^\s*//.*$", "", text, flags=re.M)
     questions = []
-    for block in re.split(r"\n\s*\n(?=\s*::|\s*[^\s{])", text):
+    category = None
+    for block in re.split(r"\n\s*\n(?=\s*::|\s*\$CATEGORY|\s*[^\s{])", text):
         block = block.strip()
+        while block.startswith("$CATEGORY:"):
+            line, _sep, block = block.partition("\n")
+            category = line.split(":", 1)[1].strip()
+            category = re.sub(r"^\$(course|system)\$/", "", category).strip() or None
+            block = block.strip()
         if "{" not in block:
             continue
         m = re.match(r"^(?:::(?P<title>.*?)::)?(?P<stem>.*?)(?<!\\)\{(?P<body>.*)(?<!\\)\}\s*$", block, re.S)
@@ -65,6 +73,13 @@ def parse_gift(text):
             options.append({"text": _unescape(tok), "correct": correct, "feedback": _unescape(fb)})
         if len(options) >= 2 and any(o["correct"] for o in options):
             explanation = _unescape(general) or next((o["feedback"] for o in options if o["correct"]), "")
-            questions.append({"title": (m.group("title") or "").strip(), "question": stem,
-                              "explanation": explanation, "options": options})
+            item = {"title": (m.group("title") or "").strip(), "question": stem,
+                    "explanation": explanation, "options": options}
+            if category:
+                dom, _sep, nuc = category.partition("|")
+                item["domain"] = dom.strip()
+                m_n = re.search(r"\d+", nuc)
+                if m_n:
+                    item["nucleo"] = int(m_n.group())
+            questions.append(item)
     return questions
