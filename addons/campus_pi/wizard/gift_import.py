@@ -22,12 +22,10 @@ class CampusGiftImport(models.TransientModel):
         items = parse_gift(text)
         if not items:
             raise UserError(_("No se encontraron preguntas de opción múltiple en el archivo."))
-        for q in items:
-            q["domain"] = self.domain
-        self.env["campus.ai.agent"]._create_questions(self.course_id, items, source="gift")
+        n = self.env["campus.ai.agent"].import_question_items(self.course_id, items, self.domain)
         return {
             "type": "ir.actions.client", "tag": "display_notification",
             "params": {"title": _("Importación GIFT"), "type": "success",
-                       "message": _("%s preguntas importadas.") % len(items),
+                       "message": _("%s preguntas importadas (%s omitidas por repetidas o inválidas).") % (n, len(items) - n),
                        "next": {"type": "ir.actions.act_window_close"}},
         }
