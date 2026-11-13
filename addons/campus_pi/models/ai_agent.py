@@ -30,7 +30,7 @@ from odoo.tools import html2plaintext, html_escape
 _logger = logging.getLogger(__name__)
 
 API_URL = "https://api.anthropic.com/v1/messages"
-DEFAULT_MODEL = "claude-sonnet-4-5"
+DEFAULT_MODEL = "claude-sonnet-5-5"
 W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 
 
@@ -125,7 +125,20 @@ class CampusAiAgent(models.AbstractModel):
 
     @api.model
     def _messages(self, system, messages, max_tokens=2000, temperature=0.4, tools=None, timeout=300, json_mode=False):
-        return call_messages(self._llm_conf(), system, messages, max_tokens, temperature, tools, timeout, json_mode)
+        conf = self._llm_conf()
+        out = call_messages(conf, system, messages, max_tokens, temperature, tools, timeout, json_mode)
+        self._remember_model(conf)
+        return out
+
+    @api.model
+    def _remember_model(self, conf):
+        """Si el modelo configurado fue retirado y se resolvió otro, se guarda para las próximas llamadas."""
+        if conf.get("resolved_model"):
+            ICP = self.env["ir.config_parameter"].sudo()
+            ICP.set_param("campus_pi.ai_model", conf["resolved_model"])
+            if conf.get("provider") == "anthropic":
+                ICP.set_param("campus_pi.claude_model", conf["resolved_model"])
+            _logger.warning("Modelo de IA actualizado automáticamente a %s", conf["resolved_model"])
 
     @api.model
     def _call(self, system, messages, max_tokens=2000, temperature=0.4, json_mode=False):
@@ -517,6 +530,22 @@ Respondes SOLO con JSON válido, sin texto adicional."""
                 if weak:
                     return "(Modo sin IA) Según tu último simulacro, refuerza:\n%s" % "\n".join(
                         "- **%s**: %s %%" % (d, r.get("pct")) for d, r in weak)
+        m_n = re.search(r"n[uú]cleo\s*(\d+)", msg)
+        if m_n:
+            sec = course.section_ids.filtered(lambda x: re.match(r"(?i)\s*n[úu]cleo\s+%s\b" % m_n.group(1), x.name or ""))[:1]
+            if sec:
+                lect = sec.lesson_ids.filtered(lambda l: l.lesson_type == "lectura")[:1]
+                heads = re.findall(r"<h4[^>]*>(.*?)</h4>", lect.content or "")[:6] if lect else []
+                out = ["(Modo sin IA) **%s**" % sec.name]
+                if sec.objective:
+                    out.append("**Objetivo:** %s" % sec.objective)
+                if heads:
+                    out.append("**Ideas clave para explicar:**\n" + "\n".join("- %s" % html2plaintext(h).strip() for h in heads))
+                out.append("**Ruta del núcleo:**\n" + "\n".join("- %s (%s min)" % (l.name, l.duration_min) for l in sec.lesson_ids))
+                if staff:
+                    out.append("Sugerencia: inicia con una pregunta detonante sobre un caso real, explica las ideas clave "
+                               "con la presentación del núcleo y cierra con 3 preguntas del banco.")
+                return "\n\n".join(out)
         terms = self._terms(message)
         if not terms:
             return "(Modo sin IA) Cuéntame con más detalle qué tema del curso quieres trabajar."

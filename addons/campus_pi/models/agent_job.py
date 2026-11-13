@@ -406,6 +406,7 @@ class CampusAgentJob(models.Model):
         workers = llm.PROVIDERS.get(conf["provider"], {}).get("parallel", 1)
         with ThreadPoolExecutor(max_workers=max(1, min(workers, len(nucleos)))) as ex:
             results = list(ex.map(work, nucleos))
+        agent._remember_model(conf)
         out = []
         for nuc, res in zip(nucleos, results):
             if res.get("_error"):
