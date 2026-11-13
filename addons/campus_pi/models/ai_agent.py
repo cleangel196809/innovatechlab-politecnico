@@ -318,6 +318,25 @@ Respondes SOLO con JSON válido, sin texto adicional."""
         self._create_questions(course, qs)
         return len(course.question_ids) - before
 
+    @api.model
+    def import_question_items(self, course, items, default_domain="General"):
+        """Importa preguntas GIFT: usa el dominio de $CATEGORY y vincula el núcleo indicado.
+        Omite preguntas repetidas (mismo enunciado) para poder reimportar sin duplicar."""
+        existing = set(course.question_ids.mapped("name"))
+        sections = {}
+        for sec in course.section_ids:
+            m = re.match(r"(?i)\s*n[úu]cleo\s+(\d+)", sec.name or "")
+            if m:
+                sections[int(m.group(1))] = sec
+        before = len(course.question_ids)
+        for q in items:
+            if q.get("question") in existing:
+                continue
+            q.setdefault("domain", default_domain or "General")
+            self._create_questions(course, [q], source="gift", section=sections.get(q.get("nucleo")))
+            existing.add(q.get("question"))
+        return len(course.question_ids) - before
+
     def _create_questions(self, course, questions, source="ai", section=None):
         Q = self.env["campus.question"].sudo()
         for q in questions or []:
