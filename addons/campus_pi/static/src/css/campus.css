@@ -1,4 +1,4 @@
-/* InnobaTech Lab · Campus PI — colores tomados del isologo del Politécnico Internacional */
+/* InnovaTech Lab · Campus PI — colores tomados del isologo del Politécnico Internacional */
 :root {
   --pi-navy: #160B8B;
   --pi-deep: #0A0650;
@@ -39,6 +39,7 @@ code { background: var(--pi-ice); padding: 1px 5px; border-radius: 4px; font-siz
 .cp-brand { display: flex; align-items: center; gap: 10px; color: #fff; }
 .cp-brand:hover { text-decoration: none; }
 .cp-brand img { height: 40px; filter: drop-shadow(0 0 4px rgba(106,204,234,.6)); }
+.cp-brand img.cp-brand-lab { height: 38px; background: #fff; border-radius: 10px; padding: 3px 5px; filter: none; }
 .cp-brand span { display: flex; flex-direction: column; line-height: 1.1; }
 .cp-brand small { color: var(--pi-sky); font-size: 11px; letter-spacing: .5px; }
 .cp-nav { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
@@ -168,7 +169,58 @@ button.cp-chip { cursor: pointer; }
 .cp-compare td:last-child { background: #F6FAFF; }
 .cp-session-box { background: linear-gradient(135deg, #EEF3FF, #E6F7FD); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin: 12px 0; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .cp-video { position: relative; padding-top: 56.25%; margin: 14px 0; }
-.cp-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 12px; }
+.cp-video iframe, .cp-video video { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 12px; background: #000; }
+
+/* Material de lecciones: imagen, PDF, infografía generada, presentación narrada, práctica */
+.cp-figure { margin: 14px 0; text-align: center; }
+.cp-figure img { max-width: 100%; border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+.cp-pdf iframe { width: 100%; height: 75vh; min-height: 420px; border: 1px solid var(--line); border-radius: 12px; margin-top: 14px; }
+.cp-infographic { margin: 16px 0; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: #fff; box-shadow: var(--shadow); }
+.cp-ig-head { background: linear-gradient(120deg, var(--pi-deep), var(--pi-navy) 55%, var(--pi-blue)); color: #fff; padding: 26px 28px; }
+.cp-ig-head h3 { margin: 8px 0 6px; font-size: 24px; font-weight: 800; color: #fff; }
+.cp-ig-head p { margin: 0; opacity: .92; }
+.cp-ig-badge { display: inline-block; background: var(--pi-sky); color: var(--pi-deep); font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; padding: 4px 10px; border-radius: 99px; }
+.cp-ig-meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: var(--pi-sky); }
+.cp-ig-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; padding: 22px; background: var(--pi-ice); }
+.cp-ig-point { background: #fff; border-radius: 14px; padding: 16px 16px 12px; position: relative; border-top: 4px solid var(--pi-blue); }
+.cp-ig-point:nth-child(2n) { border-top-color: var(--pi-sky); }
+.cp-ig-point h4 { margin: 6px 0; font-size: 15px; color: var(--pi-deep); }
+.cp-ig-point p { margin: 0; font-size: 13px; color: var(--muted); }
+.cp-ig-num { display: inline-flex; width: 28px; height: 28px; border-radius: 50%; align-items: center; justify-content: center; background: var(--pi-navy); color: #fff; font-weight: 800; font-size: 13px; }
+.cp-ig-route { padding: 18px 24px 8px; }
+.cp-ig-route h4 { margin: 0 0 10px; color: var(--pi-deep); }
+.cp-ig-route ol { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; counter-reset: r; }
+.cp-ig-route li { display: flex; gap: 6px; align-items: center; background: var(--pi-ice); border-radius: 99px; padding: 6px 12px; font-size: 13px; }
+.cp-ig-route li small { color: var(--muted); }
+.cp-ig-foot { padding: 12px 24px 20px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+.cp-deck { margin: 16px 0; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: #fff; }
+.cp-deck-stage { position: relative; min-height: 340px; background: linear-gradient(135deg, var(--pi-deep), var(--pi-navy) 60%, var(--pi-blue)); color: #fff; }
+.cp-slide { display: none; padding: 34px 40px 30px; animation: cpFade .35s ease; }
+.cp-slide.active { display: block; }
+.cp-slide h3 { font-size: 26px; font-weight: 800; margin: 6px 0 8px; color: #fff; }
+.cp-slide-lead { color: var(--pi-sky); font-weight: 600; margin: 0 0 12px; }
+.cp-slide ul { padding-left: 20px; margin: 0; }
+.cp-slide li { margin: 8px 0; line-height: 1.45; }
+.cp-slide-num { color: var(--pi-sky); font-size: 12px; letter-spacing: 1px; }
+.cp-deck-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--line); }
+.cp-deck-dots { flex: 1; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.cp-deck-dots button { width: 10px; height: 10px; border-radius: 50%; border: 0; background: var(--line); cursor: pointer; padding: 0; }
+.cp-deck-dots button.on { background: var(--pi-blue); }
+@keyframes cpFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.cp-practice { margin: 16px 0; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.cp-practice-q { padding: 12px 0; border-top: 1px solid var(--line); }
+.cp-practice-opt { display: block; width: 100%; text-align: left; margin: 6px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; cursor: pointer; font: inherit; }
+.cp-practice-opt:hover { border-color: var(--pi-sky); }
+.cp-practice-opt.ok { background: #E6F6EC; border-color: var(--ok); }
+.cp-practice-opt.bad { background: #FDECEC; border-color: var(--bad); }
+.cp-practice-opt[disabled] { cursor: default; }
+.cp-practice-fb { font-size: 14px; margin-top: 6px; }
+.cp-guide { margin: 16px 0; padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.cp-guide h5 { margin: 16px 0 8px; color: var(--pi-deep); }
+.cp-resources { margin: 18px 0; border: 1px dashed var(--line); border-radius: 12px; padding: 10px 14px; background: #FBFCFF; }
+.cp-resources summary { cursor: pointer; font-weight: 600; color: var(--pi-navy); }
+.cp-form .cp-inline { display: inline; font-weight: 400; margin-left: 10px; }
+.cp-form .cp-inline input { width: auto; }
 .cp-ai-guide { background: #F3F0FF; border: 1px solid #D9D2FF; border-radius: 12px; padding: 12px 16px; margin: 16px 0; }
 .cp-ai-guide summary { font-weight: 700; color: var(--pi-navy); cursor: pointer; }
 .cp-lesson-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line); }
@@ -268,6 +320,11 @@ body.cp-login-body {
 .cp-link-light { color: var(--pi-sky); font-weight: 600; }
 .cp-login-card { background: #fff; border-radius: 22px; padding: 34px 36px; box-shadow: 0 30px 60px rgba(0,0,0,.35); }
 .cp-login-logo { display: block; margin: 0 auto 10px; max-height: 150px; max-width: 100%; }
+.cp-login-logos { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 0 0 18px; }
+.cp-login-logo-pi { max-height: 120px; max-width: 34%; }
+.cp-login-logo-lab { max-height: 96px; max-width: 58%; }
+.cp-login-logos-sep { width: 1px; align-self: stretch; background: var(--line); }
+.cp-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .cp-login-title { font-size: 16px; text-align: center; color: var(--pi-navy); font-weight: 700; line-height: 1.4; margin: 6px 0 14px; }
 .cp-verify { max-width: 620px; margin: 60px auto; text-align: center; }
 
@@ -286,4 +343,6 @@ body.cp-login-body {
   .cp-index { position: static; max-height: none; }
   .cp-tabs { margin: -14px 8px 18px; }
   .cp-login-side { display: none; }
+  .cp-slide { padding: 24px 20px; }
+  .cp-slide h3 { font-size: 21px; }
 }
