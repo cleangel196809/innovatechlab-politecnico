@@ -162,6 +162,45 @@
             });
         });
 
+        // Avance del agente de diseño instruccional
+        var job = document.getElementById("cp-job");
+        if (job) {
+            var order = Array.prototype.map.call(job.querySelectorAll(".cp-job-steps li"), function (li) { return li.dataset.stage; });
+            var poll = function () {
+                fetch(job.dataset.url, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ jsonrpc: "2.0", method: "call", params: {} }),
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    var r = data.result || {};
+                    document.getElementById("cp-job-pct").textContent = (r.progress || 0) + " %";
+                    document.getElementById("cp-job-bar").style.width = (r.progress || 0) + "%";
+                    var log = document.getElementById("cp-job-log");
+                    if (log.textContent !== r.log) { log.textContent = r.log || ""; log.scrollTop = log.scrollHeight; }
+                    var idx = order.indexOf(r.stage);
+                    job.querySelectorAll(".cp-job-steps li").forEach(function (li, i) {
+                        li.classList.toggle("ok", i < idx || r.state === "done");
+                        li.classList.toggle("on", i === idx && r.state !== "done");
+                    });
+                    var li = job.querySelector('.cp-job-steps li[data-stage="' + r.stage + '"]');
+                    document.getElementById("cp-job-stage").textContent = r.state === "done" ? "Terminado" :
+                        (r.state === "error" ? "Con error" : (li ? li.textContent : "En cola"));
+                    if (r.state === "done") {
+                        document.getElementById("cp-job-link").href = r.course_url;
+                        document.getElementById("cp-job-done").hidden = false;
+                        return;
+                    }
+                    if (r.state === "error" || r.stale) {
+                        document.getElementById("cp-job-error-msg").textContent = r.error ||
+                            "El agente dejó de responder (el servidor pudo reiniciarse). Puedes reintentar.";
+                        document.getElementById("cp-job-error").hidden = false;
+                        if (r.state === "error") { return; }
+                    }
+                    setTimeout(poll, 2500);
+                }).catch(function () { setTimeout(poll, 5000); });
+            };
+            poll();
+        }
+
         // Chat del tutor IA
         var chat = document.getElementById("cp-chat");
         if (chat) {
