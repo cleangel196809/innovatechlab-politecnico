@@ -13,7 +13,7 @@ Campus virtual de microcertificaciones con agentes de IA
 * Tutoría virtual con docente y tutoría con agente de IA (Claude)
 * Microcredenciales verificables públicamente
 """,
-    "version": "17.0.1.3.0",
+    "version": "17.0.1.4.0",
     "category": "Education",
     "author": "InnovaTech Lab - Politécnico Internacional",
     "website": "https://github.com/cleangel196809/innovatechlab-politecnico",
