@@ -138,19 +138,21 @@ const status = async (page, url, opts) => (await page.request.fetch(B + url, opt
   await a.fill('input[name=name]', 'Curso prueba extrema <b>XSS</b>');
   await a.setInputFiles('input[name=syllabus]', 'syl.txt');
   await a.fill('input[name=date_start]', '2026-12-01'); await a.fill('input[name=date_end]', '2026-11-01');
-  await Promise.all([a.waitForNavigation({ timeout: 120000 }), a.click('form.cp-loading-form button')]);
+  await Promise.all([a.waitForNavigation({ timeout: 120000 }), a.click('form.cp-form button.cp-btn-lg')]);
   ok('admin: fechas invertidas → mensaje', (await a.content()).includes('fecha de fin no puede'));
   await a.fill('input[name=name]', 'Curso prueba extrema <b>XSS</b>');
   await a.setInputFiles('input[name=syllabus]', 'syl.txt');
   await a.fill('input[name=date_start]', '2026-12-01'); await a.fill('input[name=date_end]', '2027-02-01');
-  await Promise.all([a.waitForNavigation({ timeout: 120000 }), a.click('form.cp-loading-form button')]);
-  ok('admin: crea curso desde syllabus', a.url().includes('nuevo='), a.url());
-  const newId = new URL(a.url()).searchParams.get('nuevo');
-  await a.goto(B + `/campus/curso/${newId}`);
+  await Promise.all([a.waitForNavigation({ timeout: 120000 }), a.click('form.cp-form button.cp-btn-lg')]);
+  ok('admin: agente inicia desde syllabus', /\/campus\/admin\/agente\/\d+/.test(a.url()), a.url());
+  for (let i = 0; i < 120 && !(await a.$eval('#cp-job-done', e => !e.hidden)); i++) await a.waitForTimeout(1000);
+  const newHref = await a.$eval('#cp-job-link', e => e.getAttribute('href'));
+  ok('admin: crea curso desde syllabus', /\/campus\/curso\/\d+/.test(newHref), newHref);
+  await a.goto(B + newHref);
   ok('curso nuevo: XSS escapado', !(await a.$('h1 b')) , '');
   const links = await a.$$eval('.cp-activity', as => as.map(x => x.getAttribute('href')));
   let empty = 0;
-  for (const l of links) { await a.goto(B + l); const has = await a.$('.cp-video, .cp-infographic, .cp-deck, .cp-practice, .cp-empty, .cp-rich'); if (!has) empty++; }
+  for (const l of links) { await a.goto(B + l); const has = await a.$('.cp-video, .cp-infographic, .cp-deck, .cp-practice, .cp-empty, .cp-rich, .cp-guide, .cp-ai-guide'); if (!has) empty++; }
   ok('curso nuevo: todas las lecciones con material (' + links.length + ')', empty === 0, 'vacías ' + empty);
   ok('admin: errores JS', a.errors.length === 0, a.errors.join(';'));
 
