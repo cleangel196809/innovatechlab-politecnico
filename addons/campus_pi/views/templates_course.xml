@@ -134,6 +134,23 @@
                         <button class="cp-btn cp-btn-primary cp-btn-lg">Iniciar simulacro</button>
                     </form>
                     <p t-else="" class="cp-muted">Vista de docente/administrador: los estudiantes inscritos pueden presentar el simulacro.</p>
+                    <details t-if="can_edit" class="cp-resources" id="importar" t-att-open="'open' if request.params.get('gift') else None">
+                        <summary>📥 Cargar banco de preguntas (formato GIFT de Moodle)</summary>
+                        <t t-set="g" t-value="request.params.get('gift')"/>
+                        <div t-if="g == 'ok'" class="cp-alert cp-alert-ok">Se importaron <b t-esc="request.params.get('n')"/> de <t t-esc="request.params.get('t')"/> preguntas (las repetidas o sin una única respuesta correcta se omiten).</div>
+                        <div t-if="g == 'vacio'" class="cp-alert cp-alert-error">No se encontraron preguntas de opción múltiple en el archivo.</div>
+                        <div t-if="g == 'grande'" class="cp-alert cp-alert-error">El archivo supera 3 MB.</div>
+                        <div t-if="g == 'sin_archivo'" class="cp-alert cp-alert-error">Seleccione un archivo .txt o .gift.</div>
+                        <form method="post" enctype="multipart/form-data" t-attf-action="/campus/curso/#{course.id}/preguntas/importar" class="cp-form">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <label>Archivo GIFT (.txt o .gift)</label>
+                            <input type="file" name="gift" accept=".txt,.gift" required="required"/>
+                            <label>Dominio por defecto (si el archivo no trae líneas $CATEGORY)</label>
+                            <input type="text" name="domain" value="General"/>
+                            <p class="cp-small cp-muted">Use <code>$CATEGORY: Nombre del dominio | Núcleo 2</code> antes de cada grupo de preguntas para asignar dominio y núcleo.</p>
+                            <button type="submit" class="cp-btn cp-btn-primary">Importar preguntas</button>
+                        </form>
+                    </details>
                 </div>
                 <div class="cp-card">
                     <h3>Mis intentos</h3>
