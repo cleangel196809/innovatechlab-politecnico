@@ -12,7 +12,7 @@
             <div t-if="not ai_enabled" class="cp-alert">⚠️ No hay proveedor de IA configurado: el agente trabajará en <b>modo sin IA</b> (todo se arma solo con el syllabus). Configure una clave gratuita de Gemini o Groq (o Claude/ChatGPT) en <a href="/campus/admin/ia">Proveedor de IA</a> o en las variables de Render.</div>
             <div t-else="" class="cp-alert cp-alert-ok">🤖 Proveedor de IA activo: <b t-esc="ai_label"/> (<a href="/campus/admin/ia">cambiar</a>)<t t-if="not ai_search"> · sin búsqueda web (los datos de la certificación quedarán marcados para verificar)</t>.</div>
             <div t-if="error" class="cp-alert cp-alert-error" t-esc="error"/>
-            <form method="post" enctype="multipart/form-data" class="cp-card cp-form cp-form-grid">
+            <form method="post" enctype="multipart/form-data" class="cp-card cp-form cp-form-grid" data-cp-encode="syllabus">
                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                 <div class="cp-span-2">
                     <label>Nombre del curso</label>

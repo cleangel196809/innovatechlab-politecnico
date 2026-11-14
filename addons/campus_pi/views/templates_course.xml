@@ -141,7 +141,7 @@
                         <div t-if="g == 'vacio'" class="cp-alert cp-alert-error">No se encontraron preguntas de opción múltiple en el archivo.</div>
                         <div t-if="g == 'grande'" class="cp-alert cp-alert-error">El archivo supera 3 MB.</div>
                         <div t-if="g == 'sin_archivo'" class="cp-alert cp-alert-error">Seleccione un archivo .txt o .gift.</div>
-                        <form method="post" enctype="multipart/form-data" t-attf-action="/campus/curso/#{course.id}/preguntas/importar" class="cp-form">
+                        <form method="post" enctype="multipart/form-data" t-attf-action="/campus/curso/#{course.id}/preguntas/importar" class="cp-form" data-cp-encode="gift">
                             <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                             <label>Archivo GIFT (.txt o .gift)</label>
                             <input type="file" name="gift" accept=".txt,.gift" required="required"/>
