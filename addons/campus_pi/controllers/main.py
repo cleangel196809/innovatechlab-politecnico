@@ -21,6 +21,43 @@ def _uid_is_public():
     return not request.session.uid or request.env.user._is_public()
 
 
+
+class _EncodedUpload(object):
+    """Archivo que el navegador envió codificado en base64 (ver campus.js, data-cp-encode).
+
+    El firewall (WAF) del hosting bloquea solicitudes cuyo contenido parece un ataque, algo
+    habitual en bancos de preguntas y syllabus de ciberseguridad (inyección SQL, XSS…).
+    """
+
+    def __init__(self, upload):
+        self.filename = upload.filename
+        self._upload = upload
+
+    def read(self):
+        raw = self._upload.read()
+        try:
+            return base64.b64decode(raw, validate=False)
+        except (ValueError, TypeError):
+            return b""
+
+
+def _upload(name, kw):
+    f = request.httprequest.files.get(name)
+    if f and f.filename and kw.get(name + "_enc") == "b64":
+        return _EncodedUpload(f)
+    return f
+
+
+def _decode_text(kw, name):
+    """Texto enviado como <name>_b64 (UTF-8 en base64) o tal cual en <name>."""
+    enc = kw.get(name + "_b64")
+    if enc:
+        try:
+            return base64.b64decode(enc).decode("utf-8", errors="ignore")
+        except (ValueError, TypeError):
+            return ""
+    return kw.get(name) or ""
+
 class CampusHome(Home):
     """La raíz del sitio y el post-login llevan al campus."""
 
@@ -267,7 +304,7 @@ class Campus(http.Controller):
             raise NotFound()
         from ..tools.gift import parse_gift
         base = "/campus/curso/%s/simulador" % course.id
-        f = request.httprequest.files.get("gift")
+        f = _upload("gift", kw)
         if not f or not f.filename:
             return request.redirect(base + "?gift=sin_archivo#importar")
         data = f.read()
@@ -384,6 +421,8 @@ class Campus(http.Controller):
     @http.route("/campus/curso/<int:course_id>/tutor-ia/mensaje", type="json", auth="user", sitemap=False)
     def ai_tutor_message(self, course_id, message="", **kw):
         course, _enr = self._course(course_id)
+        if kw.get("message_b64"):
+            message = _decode_text(kw, "message")
         message = (message or "").strip()[:4000]
         if not message:
             return {"answer": ""}
@@ -435,7 +474,7 @@ class Campus(http.Controller):
         env = request.env
         error = None
         if request.httprequest.method == "POST":
-            f = request.httprequest.files.get("syllabus")
+            f = _upload("syllabus", kw)
             try:
                 if not f or not f.filename:
                     raise UserError(_("Cargue el syllabus (PDF, DOCX o TXT)."))
