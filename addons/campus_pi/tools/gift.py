@@ -14,6 +14,20 @@ def _unescape(s):
     return s.strip()
 
 
+def _literal_equals(s, i):
+    """'=' sin escapar dentro de un texto (1=1, a==b, x<=y): no inicia una respuesta.
+
+    El formato GIFT exige escribir \\=, pero los bancos de seguridad o programación suelen traer
+    expresiones como ' OR 1=1 --; tratarlas como respuesta nueva rompía la pregunta.
+    """
+    if s[i] != "=" or i == 0 or i + 1 >= len(s):
+        return False
+    prev, nxt = s[i - 1], s[i + 1]
+    if prev in "=!<>" or nxt == "=":
+        return True
+    return prev.isalnum() and (nxt.isalnum() or nxt in "'\"(")
+
+
 def _split_unescaped(s, chars):
     """Divide s en tokens que empiezan por un carácter de `chars` no escapado."""
     parts, cur, i = [], "", 0
@@ -23,7 +37,7 @@ def _split_unescaped(s, chars):
             cur += s[i:i + 2]
             i += 2
             continue
-        if c in chars:
+        if c in chars and not _literal_equals(s, i):
             if cur.strip():
                 parts.append(cur)
             cur = c
