@@ -31,3 +31,4 @@ access_aimsg_teacher,aimsg teacher,model_campus_ai_message,group_campus_teacher,
 access_gift_admin,gift admin,model_campus_gift_import,group_campus_teacher,1,1,1,1
 access_agentjob_admin,agent job admin,model_campus_agent_job,group_campus_admin,1,1,1,1
 access_agentjob_teacher,agent job teacher,model_campus_agent_job,group_campus_teacher,1,0,0,0
+access_campus_material_admin,campus.material admin,model_campus_material,group_campus_admin,1,1,1,1

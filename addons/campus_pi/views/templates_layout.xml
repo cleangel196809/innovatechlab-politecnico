@@ -26,6 +26,7 @@
                         <t t-if="role == 'admin'">
                             <a href="/campus/admin/crear-curso">Crear curso con IA</a>
                             <a href="/campus/admin/cursos">Cursos</a>
+                            <a href="/campus/admin/datos">Base de datos</a>
                             <a href="/campus/admin/ia">Proveedor de IA</a>
                         </t>
                         <t t-if="role in ('admin', 'teacher')"><a href="/web#action=campus_pi.action_course">Configurar (Odoo)</a></t>

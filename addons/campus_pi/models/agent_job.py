@@ -32,6 +32,9 @@ from odoo.exceptions import UserError
 from odoo.modules.registry import Registry
 from odoo.tools import html_escape
 
+from ..tools import deck as deck_tools
+from ..tools import kit as kit_tools
+from ..tools import material as mat_tools
 from ..tools import syllabus as syl_tools
 
 _logger = logging.getLogger(__name__)
@@ -48,17 +51,46 @@ STAGES = [
 ]
 
 NUCLEO_SCHEMA = """{
- "lectura": {"titulo": str, "resumen": str, "html": str},
- "presentacion": {"slides": [{"title": str, "lead": str, "points": [str]}]},
- "infografia": {"titulo": str, "objetivo": str, "dato_clave": str, "puntos": [{"title": str, "text": str}]},
- "video": {"titulo": str, "resumen": str, "guion_html": str, "busqueda_youtube": str},
- "actividad": {"titulo": str, "resumen": str, "html": str},
+ "lectura": {"titulo": str, "resumen": str (máx. 240 caracteres),
+   "presentacion": str (2 párrafos que enganchan: por qué importa el tema, cómo se conecta con el proyecto),
+   "logros": [str] (3-4, inician con verbo en infinitivo),
+   "secciones_html": str (secciones numeradas <h3>1. …</h3> con <h4>1.1 …</h4>, párrafos, al menos una tabla
+      <table class='table'> con <tr><th>, ejemplos de código en <pre><code>…</code></pre> con <p class='caption'>Código N. …</p>,
+      y 1-2 recuadros <div class='cp-callout'><b>Título</b><p>…</p></div>),
+   "buenas_practicas": [str] (5-6),
+   "casos": [{"titulo": str, "texto": str}] (3 casos para reflexionar, situaciones reales con una pregunta),
+   "glosario": [{"termino": str, "significado": str}] (8-12),
+   "referencias": [str] (formato APA 7, solo fuentes reales de la investigación o del syllabus)},
+ "bibliografia": {"principal": [{"titulo": str, "autor": str, "url": str, "tema": str, "paginas": str, "referencia": str}],
+                  "complementaria": [{"titulo": str, "autor": str, "url": str, "referencia": str}]},
+ "infografia": {"titulo": str, "pregunta_orientadora": str, "texto_orientador": str (máx. 300 caracteres),
+   "dato_clave": str, "terminos": [{"termino": str (máx. 25 caracteres), "texto": str (máx. 200 caracteres),
+   "icono": str (uno de ICONOS), "etiqueta": str (2-4 palabras para la imagen)}] (10-14)},
+ "caso": {"titulo": str, "tiempo_horas": int, "peso": str, "contexto": str (historia de una organización colombiana
+   ficticia, 2-3 párrafos), "introduccion_indicaciones": str, "indicaciones": [str] (5-8 pasos verificables),
+   "entregables": [str], "cierre": str, "solucion": [{"escenario": str, "accion": str, "resultado": str}],
+   "revision_docente": [str], "rubrica": [{"criterio": str, "bueno": str, "regular": str, "insuficiente": str,
+   "puntaje": float}] (4 criterios que suman 5,0)} | null,
  "laboratorio": {"titulo": str, "resumen": str, "html": str, "recurso_url": str} | null,
- "evaluacion": {"titulo": str, "resumen": str, "html": str},
  "sesion_virtual": {"resumen": str, "agenda_html": str},
  "sesion_presencial": {"resumen": str, "guion_ia_html": str},
  "preguntas": [{"domain": str, "question": str, "explanation": str,
                 "options": [{"text": str, "correct": bool, "feedback": str}]}]
+}"""
+
+MEDIA_SCHEMA = """{
+ "escenas": [{"layout": "portada|puntos|codigo|tabla|proceso|comparacion|cita|cierre",
+   "title": str (máx. 60 caracteres), "subtitle": str,
+   "points": [str] (2-5 frases cortas de máx. 70 caracteres; lo que se ve en pantalla, no lo que se dice),
+   "code": str (solo si layout=codigo, máx. 14 líneas), "code_lang": str,
+   "table": {"headers": [str], "rows": [[str]]} (solo si layout=tabla),
+   "icon": str (uno de ICONOS), "icon_label": str (2-4 palabras),
+   "narration": str (lo que dice el docente: 110-170 palabras, ver reglas de voz)}] (12-16 escenas),
+ "busqueda_youtube": str,
+ "actividad": {"titulo": str, "objetivo": str, "instruccion": str,
+   "preguntas": [{"escena": int (número de la escena después de la cual aparece), "enunciado": str (caso aplicado),
+     "opciones": [{"texto": str, "correcta": bool, "retro": str (por qué es correcta o incorrecta)}] (4 opciones, 1 correcta)}]
+   (10-15 preguntas)}
 }"""
 
 RESEARCH_SCHEMA = """{
@@ -156,9 +188,18 @@ class CampusAgentJob(models.Model):
         try:
             p = self.params or {}
             # 1. Syllabus
-            self._say("Leyendo el syllabus «%s»…" % (self.syllabus_filename or "syllabus"), 3, "parse")
+            target = self.regenerate_course_id
+            if target and not self.use_ai:
+                raise UserError(_("Para regenerar un curso con los agentes configure un proveedor de IA "
+                                  "(Gemini o Groq gratis, Claude o ChatGPT) en «Proveedor de IA»."))
+            self._say("Leyendo el syllabus «%s»…" % (self.syllabus_filename or (
+                "del curso «%s»" % target.name if target else "syllabus")), 3, "parse")
             raw = base64.b64decode(self.syllabus_file or b"")
-            if self.syllabus_filename and self.syllabus_filename.lower().endswith(".pdf"):
+            if target and not self.syllabus_file:
+                syl = target._syllabus_from_course()
+                self._say("Regenerando «%s» con los agentes actuales: se conserva su estructura de núcleos y el "
+                          "contenido actual se usa como material del docente." % target.name, 4)
+            elif self.syllabus_filename and self.syllabus_filename.lower().endswith(".pdf"):
                 text = agent.extract_text(self.syllabus_file, self.syllabus_filename)
                 syl = syl_tools.parse_text(text)
             else:
@@ -169,6 +210,8 @@ class CampusAgentJob(models.Model):
                                       "Ábralo en Word, guárdelo de nuevo como .docx o súbalo en PDF.") % self.syllabus_filename)
             is_docx = (self.syllabus_filename or "").lower().endswith(".docx")
             weak = not is_docx or not syl.get("nucleos") or not any(n.get("temas") for n in syl["nucleos"])
+            if target and not self.syllabus_file and syl.get("nucleos"):
+                weak = False
             if self.use_ai and weak:
                 self._say("El formato no es DOCX o la tabla de alineación no es legible: Claude interpreta la estructura…", 5)
                 try:
@@ -199,6 +242,20 @@ class CampusAgentJob(models.Model):
                 syl.get("asignatura") or "(sin nombre)", len(syl["nucleos"]), len(syl.get("objetivos") or []),
                 len(syl.get("evaluacion") or []),
                 len(syl.get("bibliografia") or []) + len(syl.get("cibergrafia") or [])), 8)
+
+            # 1b. Material del docente (opcional)
+            if self.material_ids:
+                self._say("Leyendo el material del curso (%d archivo(s))…" % len(self.material_ids), 9)
+                mats = self.material_ids._expand()
+                with_text = mats.filtered(lambda m: (m.text or "").strip() and not (m.text or "").startswith("[No se pudo"))
+                self._say("Material: %d archivo(s), %d con texto utilizable. %s" % (
+                    len(mats), len(with_text), mat_tools.summarize(
+                        [{"name": m.path or m.name, "kind": m.kind, "nucleo": m.nucleo} for m in mats], 1500)), 10)
+                nums = {n["numero"] for n in syl["nucleos"]}
+                lost = mats.filtered(lambda m: m.nucleo and m.nucleo not in nums)
+                if lost:
+                    lost.write({"nucleo": 0})
+                    self._say("ℹ️ %d archivo(s) mencionan un núcleo que no existe en el syllabus: se usan como material general." % len(lost))
 
             # 2. Certificación
             cert = self.certification_id
@@ -271,11 +328,21 @@ class CampusAgentJob(models.Model):
             self._say("Creando inicio (guía, ruta de certificación, diagnóstico) y cierre…", 90, "frame")
             self._create_frame(course, sections[0], sections[-1], syl, cert, research, p)
 
+            if self.roster_students or self.roster_teachers:
+                self._say("Cargando la hoja de estudiantes y docentes… " + self._import_rosters(course), 91)
+            if self.material_ids.filtered("file"):
+                n_pub = self._publish_materials(course)
+                self._say("Material del docente publicado en el curso (%d lección(es) de apoyo)." % n_pub, 92)
+
             # 8. Fuentes y cierre
             course.sources_html = self._sources_html(syl, research, cert)
             if p.get("student_ids"):
                 course.enroll_users(self.env["res.users"].browse(p["student_ids"]))
             course.ai_log = (self.log or "")[-8000:]
+            if target:
+                self._say("Reemplazando el contenido de «%s» por el nuevo (inscripciones, docentes, banco de preguntas "
+                          "y microcredenciales se conservan)…" % target.name, 97)
+                course = self._swap_into(target, course)
             self.write({"state": "done", "date_done": fields.Datetime.now()})
             self._say("✅ Curso listo: %d lecciones y %d preguntas. Revísalo y publícalo." % (
                 len(course.lesson_ids), len(course.question_ids)), 100, "sources")
@@ -284,6 +351,11 @@ class CampusAgentJob(models.Model):
             if not self.env.context.get("agent_sync"):
                 self.env.cr.rollback()
             msg = e.args[0] if isinstance(e, UserError) else "%s: %s" % (type(e).__name__, e)
+            if self.regenerate_course_id and self.course_id and self.course_id != self.regenerate_course_id:
+                try:
+                    self.course_id.sudo().unlink()  # el curso original queda intacto
+                except Exception:  # noqa: BLE001
+                    _logger.exception("No se pudo borrar el curso temporal")
             self.write({"state": "error", "error": str(msg)[:2000]})
             self._say("❌ Error: %s" % str(msg)[:500])
         return True
@@ -347,7 +419,7 @@ class CampusAgentJob(models.Model):
             outcomes += "<p><b>Producto:</b> %s</p>" % html_escape(syl["producto"])
         desc = "".join("<p>%s</p>" % html_escape(x) for x in (syl.get("descripcion") or "").split("\n\n") if x.strip())
         course = self.env["campus.course"].sudo().create({
-            "name": p.get("name") or syl.get("asignatura") or "Curso",
+            "name": ("[Regenerando] " if self.regenerate_course_id else "") + (p.get("name") or syl.get("asignatura") or "Curso"),
             "subtitle": (("Ruta hacia %s (%s)" % (cert.name, cert.exam_code)) if cert else syl.get("programa") or "")[:200],
             "description": desc or "<p>%s</p>" % html_escape(syl.get("contenidos") or ""),
             "outcomes": outcomes,
@@ -389,88 +461,136 @@ class CampusAgentJob(models.Model):
         if not self.use_ai:
             return [self._offline_nucleo(n, syl, cert) for n in nucleos]
         summary = syl_tools.summary(syl)
-        conf = agent._llm_conf()  # se lee antes: los hilos no tocan la base de datos
+        conf = agent.bulk_conf() if self.economy else agent._llm_conf()  # se lee antes: los hilos no tocan la BD
+        if self.economy:
+            self._say("Modo económico: modelo %s, video de 9-11 escenas y actividad de 8 casos." % conf["model"])
         cinfo = None
         if cert:
             cinfo = {"name": cert.name, "provider": cert.provider, "code": cert.exam_code,
                      "domains": [(d.name, d.weight) for d in cert.domain_ids]}
         instructions = p.get("instructions")
+        cases = {n["numero"]: self._instrumento(syl, n) in ("Proyecto", "Laboratorio") for n in nucleos}
+        mctx = {n["numero"]: self._material_context(n["numero"]) for n in nucleos}
+        economy = bool(self.economy)
+        course_name = p.get("name") or syl.get("asignatura") or ""
 
-        def work(nuc):
+        def work(task):
+            kind, nuc = task
             try:
-                return agent.nucleo_content_payload(summary, nuc, cinfo, research, instructions, conf=conf)
+                if kind == "content":
+                    return agent.nucleo_content_payload(summary, nuc, cinfo, research, instructions, conf=conf,
+                                                        with_case=cases.get(nuc["numero"], False),
+                                                        material=mctx.get(nuc["numero"]) or None)
+                return agent.nucleo_media_payload(summary, nuc, cinfo, research, instructions, conf=conf,
+                                                  course_name=course_name, material=mctx.get(nuc["numero"]) or None,
+                                                  economy=economy)
             except Exception as e:  # noqa: BLE001
                 return {"_error": str(e)[:300]}
 
         from ..tools import llm
         workers = llm.PROVIDERS.get(conf["provider"], {}).get("parallel", 1)
-        with ThreadPoolExecutor(max_workers=max(1, min(workers, len(nucleos)))) as ex:
-            results = list(ex.map(work, nucleos))
+        tasks = [(k, n) for n in nucleos for k in ("content", "media")]
+        with ThreadPoolExecutor(max_workers=max(1, min(workers, len(tasks)))) as ex:
+            results = list(ex.map(work, tasks))
         agent._remember_model(conf)
         out = []
-        for nuc, res in zip(nucleos, results):
+        for i, nuc in enumerate(nucleos):
+            res, media = results[2 * i], results[2 * i + 1]
+            base = None
             if res.get("_error"):
-                self._say("⚠️ Núcleo %s: la IA falló (%s); se usa contenido base del syllabus." % (nuc["numero"], res["_error"][:150]))
-                out.append(self._offline_nucleo(nuc, syl, cert))
-            else:
-                out.append(res)
+                self._say("⚠️ Núcleo %s: la IA falló en la lectura (%s); se usa contenido base del syllabus." % (
+                    nuc["numero"], res["_error"][:150]))
+                base = self._offline_nucleo(nuc, syl, cert)
+                res = base
+            if media.get("_error"):
+                self._say("⚠️ Núcleo %s: la IA falló en el video y la actividad (%s); se arman a partir de la lectura." % (
+                    nuc["numero"], media["_error"][:150]))
+                media = (base or self._offline_nucleo(nuc, syl, cert))["_media"]
+            res = dict(res)
+            res["_media"] = media
+            out.append(res)
         return out
 
     def _offline_nucleo(self, nuc, syl, cert):
-        temas = nuc.get("temas") or [nuc["titulo"]]
+        """Contenido base sin IA, con la misma estructura de los formatos institucionales."""
+        temas = [t.rstrip(". ") for t in (nuc.get("temas") or [nuc["titulo"]]) if t.strip()]
         crit = nuc.get("criterios") or []
         refs = (syl.get("bibliografia") or [])[:4] + (syl.get("cibergrafia") or [])[:4]
+        asig = syl.get("asignatura") or ""
         e = html_escape
-        lect = ["<h4>Propósito del núcleo</h4><p>%s</p>" % e(nuc.get("objetivo") or nuc["titulo"])]
-        for t in temas:
-            lect.append("<h4>%s</h4><p>En este tema estudiarás <b>%s</b> dentro de la asignatura %s. "
-                        "Revisa la bibliografía sugerida y responde: ¿qué problema resuelve este concepto, "
-                        "cómo se aplica en un caso real de una organización colombiana y qué errores comunes "
-                        "debes evitar?</p>" % (e(t.rstrip(".")), e(t.rstrip(".").lower()), e(syl.get("asignatura") or "")))
+        secciones = []
+        for i, t in enumerate(temas, 1):
+            secciones.append(
+                "<h3>%d. %s</h3><p>En este apartado estudiarás <b>%s</b> dentro de la asignatura %s. Revisa la "
+                "bibliografía sugerida y construye tu propia explicación respondiendo tres preguntas: ¿qué problema "
+                "resuelve este concepto?, ¿cómo se aplica en una organización colombiana? y ¿qué errores comunes "
+                "debes evitar?</p>" % (i, e(t), e(t.lower()), e(asig)))
         if crit:
-            lect.append("<h4>¿Cómo se evalúa?</h4><ul>%s</ul>" % "".join("<li>%s</li>" % e(c) for c in crit))
-        if refs:
-            lect.append("<h4>Lecturas y recursos</h4><ul>%s</ul>" % "".join(
-                "<li>%s</li>" % _linkify(e(r)) for r in refs))
-        lect.append("<p class='cp-small cp-muted'>Contenido base generado a partir del syllabus (modo sin IA). "
-                    "Con la API de Anthropic el agente lo amplía con investigación web.</p>")
-        slides = [{"title": nuc["titulo"], "lead": "Núcleo %s" % nuc["numero"], "points": [nuc.get("objetivo") or ""]}]
+            secciones.append("<h3>%d. ¿Cómo se evalúa?</h3><ul>%s</ul>" % (
+                len(temas) + 1, "".join("<li>%s</li>" % e(c) for c in crit)))
+        mtxt = self._material_context(nuc["numero"], 20000, 3000) if self.material_ids else ""
+        if mtxt:
+            secciones.append("<h3>%d. Material del docente</h3>%s" % (len(secciones) + 1, "".join(
+                "<p>%s</p>" % e(par.strip()) for par in re.split(r"\n\s*\n", mtxt) if par.strip())[:60000]))
+        kit_data = {
+            "lectura": {
+                "titulo": nuc["titulo"], "resumen": nuc.get("objetivo") or "",
+                "presentacion": "Este núcleo te acerca a %s. A lo largo de la lectura encontrarás los conceptos clave, "
+                                "preguntas para conectar cada tema con tu práctica y la forma en que se evalúa." % nuc["titulo"],
+                "logros": ["Comprender %s." % (t[0].lower() + t[1:]) for t in temas[:4] if t],
+                "secciones_html": "".join(secciones),
+                "buenas_practicas": ["Lee la lectura completa antes de la sesión sincrónica.",
+                                     "Relaciona cada concepto con un caso real.",
+                                     "Consulta al tutor IA cuando una idea no quede clara."],
+                "casos": [], "glosario": [{"termino": t[:60], "significado": "Concepto central del núcleo."} for t in temas[:8]],
+                "referencias": refs,
+            },
+            "bibliografia": {"principal": [{"titulo": r, "autor": "", "url": "", "tema": nuc["titulo"], "paginas": "",
+                                            "referencia": r} for r in (syl.get("bibliografia") or [])[:2]],
+                             "complementaria": [{"titulo": r, "autor": "", "url": "", "referencia": r}
+                                                for r in (syl.get("cibergrafia") or [])[:6]]},
+        }
+        escenas = [{"layout": "portada", "title": nuc["titulo"], "subtitle": "Núcleo %s" % nuc["numero"],
+                    "points": [nuc.get("objetivo") or ""]}]
         for t in temas:
-            slides.append({"title": t.rstrip("."), "lead": "", "points": [
-                "Concepto clave: %s." % t.rstrip("."), "Pregunta orientadora: ¿dónde lo aplicarías en tu proyecto?",
-                "Relaciónalo con el objetivo: %s" % (nuc.get("objetivo") or "-")]})
+            escenas.append({"layout": "puntos", "title": t, "points": [
+                "Qué es y qué problema resuelve", "Cómo se aplica en un caso real",
+                "Errores comunes que debes evitar"]})
         if crit:
-            slides.append({"title": "Así se evalúa", "lead": "", "points": crit[:5]})
+            escenas.append({"layout": "puntos", "title": "Así se evalúa", "points": crit[:5], "icon": "objetivo"})
+        escenas.append({"layout": "cierre", "title": "Para continuar",
+                        "points": ["Lee la lectura del núcleo", "Resuelve la actividad interactiva", "Prepara la evaluación"]})
         instrumento = self._instrumento(syl, nuc)
         eval_html = "<h4>Instrucciones</h4><p>%s</p><h4>Criterios de evaluación</h4><ul>%s</ul>%s" % (
             e("Desarrolla la actividad evaluativa del núcleo (%s) aplicando los temas: %s." % (
-                instrumento.lower(), "; ".join(t.rstrip(".") for t in temas))),
+                instrumento.lower(), "; ".join(temas))),
             "".join("<li>%s</li>" % e(c) for c in crit), _rubric(crit))
         agenda = ("<h4>Agenda (90 min)</h4><ol><li>Saludo y resolución de dudas (10 min)</li>"
                   "<li>Explicación guiada: %s (35 min)</li><li>Ejercicio práctico en grupos (30 min)</li>"
-                  "<li>Cierre y preguntas tipo examen (15 min)</li></ol>") % e(", ".join(t.rstrip(".") for t in temas[:4]))
+                  "<li>Cierre y preguntas tipo examen (15 min)</li></ol>") % e(", ".join(temas[:4]))
         guion = ("<h4>Guion del agente IA (sesión presencial)</h4><ol><li><b>Diagnóstico (10 min):</b> 3 preguntas "
                  "rápidas sobre %s.</li><li><b>Preguntas detonantes:</b> ¿qué pasaría si…? aplicado a un caso local.</li>"
                  "<li><b>Reto práctico (60 min):</b> por equipos, resolver un problema del núcleo; el agente da pistas "
                  "graduales sin entregar la solución.</li><li><b>Cierre (15 min):</b> el agente resume errores frecuentes y "
                  "propone 3 preguntas tipo examen.</li></ol>") % e(nuc["titulo"])
-        return {
-            "lectura": {"titulo": "Lectura: %s" % nuc["titulo"], "resumen": nuc.get("objetivo") or "", "html": "".join(lect)},
-            "presentacion": {"slides": slides},
-            "infografia": {"titulo": nuc["titulo"], "objetivo": nuc.get("objetivo") or "",
-                           "dato_clave": "", "puntos": [{"title": t.rstrip("."), "text": ""} for t in temas[:6]]},
-            "video": {"titulo": "Video explicativo: %s" % nuc["titulo"], "resumen": "Explicación narrada de los temas del núcleo.",
-                      "guion_html": "", "busqueda_youtube": "%s %s" % (nuc["titulo"], cert.exam_code if cert else "")},
-            "actividad": {"titulo": "Actividad formativa: %s" % nuc["titulo"], "resumen": "Práctica guiada sin calificación.",
-                          "html": "<p>Elabora un mapa conceptual de los temas del núcleo (%s) y compártelo en el foro. "
-                                  "Pide retroalimentación al tutor IA.</p>" % e("; ".join(t.rstrip(".") for t in temas))},
-            "laboratorio": None,
+        kit_data.update({
+            "infografia": {"titulo": nuc["titulo"], "pregunta_orientadora": nuc.get("objetivo") or "",
+                           "texto_orientador": (nuc.get("objetivo") or "")[:300], "dato_clave": "",
+                           "terminos": [{"termino": t[:25], "texto": "", "icono": "", "etiqueta": t[:30]} for t in temas[:12]]},
+            "caso": None, "laboratorio": None,
             "evaluacion": {"titulo": "%s del Núcleo %s" % (instrumento, nuc["numero"]),
                            "resumen": "Actividad evaluativa definida en el syllabus.", "html": eval_html},
             "sesion_virtual": {"resumen": "Encuentro sincrónico con el docente.", "agenda_html": agenda},
             "sesion_presencial": {"resumen": "Sesión presencial asistida por el agente IA.", "guion_ia_html": guion},
             "preguntas": [],
-        }
+            "_media": {"escenas": escenas, "busqueda_youtube": "%s %s" % (nuc["titulo"], cert.exam_code if cert else ""),
+                       "actividad": {"titulo": "Actividad formativa: %s" % nuc["titulo"],
+                                     "objetivo": nuc.get("objetivo") or "",
+                                     "instruccion": "Elabora un mapa conceptual de los temas del núcleo (%s) y pide "
+                                                    "retroalimentación al tutor IA." % "; ".join(temas),
+                                     "preguntas": []}},
+        })
+        return kit_data
 
     def _instrumento(self, syl, nuc):
         for ev in syl.get("evaluacion") or []:
@@ -494,20 +614,36 @@ class CampusAgentJob(models.Model):
             vals.update(kw)
             return Lesson.create(vals)
 
-        lec = data.get("lectura") or {}
-        add("lectura", lec.get("titulo") or "Lectura: %s" % nuc["titulo"], lec.get("resumen"), lec.get("html"), duration_min=60)
-        pres = data.get("presentacion") or {}
-        add("presentacion", "Presentación interactiva", "Recorrido visual por los conceptos clave del núcleo.",
-            slides_json=_clean_slides(pres.get("slides")), duration_min=30)
+        kit = kit_tools.clean_kit(data)
+        media = data.get("_media") or {}
+        escenas = deck_tools.normalize(media.get("escenas") or (data.get("presentacion") or {}).get("slides"))
+        act = kit_tools.clean_activity(media.get("actividad") or {})
         ig = data.get("infografia") or {}
-        add("infografia", "Infografía del núcleo", ig.get("dato_clave") or "Síntesis gráfica del núcleo.",
+        kit.update({"infografia": ig, "actividad": act})
+        sec.kit_json = kit
+        lec = kit["lectura"]
+        lec_html = kit_tools.lectura_html(lec) if (lec.get("secciones_html") or lec.get("presentacion")) else \
+            ((data.get("lectura") or {}).get("html") or "")
+        add("lectura", "Lectura: %s" % (lec.get("titulo") or nuc["titulo"]), lec.get("resumen"), lec_html, duration_min=60)
+        add("presentacion", "Presentación del núcleo", "Recorrido visual por los conceptos clave, con narración opcional.",
+            slides_json=escenas or False, duration_min=30)
+        add("infografia", "Infografía: %s" % (ig.get("titulo") or nuc["titulo"]),
+            ig.get("pregunta_orientadora") or ig.get("dato_clave") or "Síntesis gráfica del núcleo.",
             infographic_json=ig, duration_min=10)
-        vid = data.get("video") or {}
-        add("video", vid.get("titulo") or "Video explicativo", vid.get("resumen") or "Explicación narrada del núcleo.",
-            vid.get("guion_html") or False, video_query=(vid.get("busqueda_youtube") or "")[:200],
-            slides_json=_clean_slides(pres.get("slides")), duration_min=15)
-        act = data.get("actividad") or {}
-        add("actividad", act.get("titulo") or "Actividad formativa", act.get("resumen"), act.get("html"), duration_min=45)
+        add("video", "Video explicativo: %s" % nuc["titulo"],
+            "Explicación narrada por escenas (aprox. %d min)." % max(1, deck_tools.timeline(escenas)[1] // 60) if escenas
+            else "Explicación narrada del núcleo.",
+            kit_tools.guion_html(escenas) if escenas else False,
+            video_query=(media.get("busqueda_youtube") or "")[:200], slides_json=escenas or False,
+            duration_min=max(10, deck_tools.timeline(escenas)[1] // 60 + 5) if escenas else 15)
+        add("actividad", act.get("titulo") or "Actividad formativa interactiva",
+            "%d preguntas tipo caso con retroalimentación inmediata." % len(act["preguntas"]) if act["preguntas"]
+            else "Práctica guiada sin calificación.", kit_tools.actividad_html(act), activity_json=act["preguntas"] or False,
+            duration_min=30 if act["preguntas"] else 45)
+        bib = kit["bibliografia"]
+        if bib["principal"] or bib["complementaria"]:
+            add("lectura", "Recursos bibliográficos", "Libro guía y material de apoyo complementario del núcleo.",
+                _bib_html(bib), duration_min=15)
         lab = data.get("laboratorio")
         if lab and lab.get("html"):
             url = lab.get("recurso_url") or ""
@@ -515,8 +651,17 @@ class CampusAgentJob(models.Model):
                 resource_url=url if url.startswith("http") else False, duration_min=120)
         ev = data.get("evaluacion") or {}
         instrumento = self._instrumento(syl, nuc)
-        if instrumento in ("Proyecto", "Laboratorio"):
-            add("caso", ev.get("titulo") or "Actividad evaluativa", ev.get("resumen"), ev.get("html"), duration_min=240)
+        caso = kit.get("caso")
+        if caso:
+            add("caso", caso["titulo"] or "Caso integrador", "Caso integrador con rúbrica%s." % (
+                " (%s de la nota)" % caso["peso"] if caso.get("peso") else ""), kit_tools.caso_html(caso),
+                duration_min=int(_num(caso.get("tiempo_horas") or 4) * 60))
+        elif instrumento in ("Proyecto", "Laboratorio"):
+            crit = nuc.get("criterios") or []
+            add("caso", ev.get("titulo") or "%s del Núcleo %s" % (instrumento, nuc["numero"]),
+                ev.get("resumen") or "Actividad evaluativa definida en el syllabus.",
+                ev.get("html") or ("<h4>Criterios de evaluación</h4><ul>%s</ul>%s" % (
+                    "".join("<li>%s</li>" % html_escape(c) for c in crit), _rubric(crit))), duration_min=240)
         d0 = sec.date_start or fields.Date.today()
         sv = data.get("sesion_virtual") or {}
         add("sesion_virtual", "Sesión sincrónica virtual", sv.get("resumen") or "Encuentro sincrónico con el docente.",
@@ -539,6 +684,37 @@ class CampusAgentJob(models.Model):
         else:
             add("quiz", "Cuestionario del Núcleo %s" % nuc["numero"],
                 "Práctica con calificación automática y retroalimentación por opción.", duration_min=30)
+
+    def _swap_into(self, old, new):
+        """Pasa las secciones nuevas al curso original y elimina las anteriores. Conserva el registro del curso
+        (inscripciones, docentes, microcredenciales, estado, fechas, ícono) y su banco de preguntas."""
+        self.ensure_one()
+        old, new = old.sudo(), new.sudo()
+
+        def num(sec):
+            return mat_tools.section_number(sec.name)
+        old_qs = old.question_ids
+        old_q_sec = {q.id: num(q.section_id) for q in old_qs if q.section_id}
+        old_sections = old.section_ids
+        new.section_ids.write({"course_id": old.id})
+        names = set(old_qs.mapped("name"))
+        new_qs = new.question_ids
+        dup = new_qs.filtered(lambda q: q.name in names)
+        dup.unlink()
+        (new_qs - dup).exists().write({"course_id": old.id})
+        new.material_ids.write({"course_id": old.id})
+        old_sections.unlink()
+        by_num = {num(s): s for s in old.section_ids if num(s)}
+        for q in old_qs.exists():
+            if old_q_sec.get(q.id) and by_num.get(old_q_sec[q.id]):
+                q.section_id = by_num[old_q_sec[q.id]]
+        old.write({k: new[k] for k in ("description", "outcomes", "sources_html", "ai_log") if new[k]})
+        old.write({"ai_generated": True, "agent_job_id": self.id,
+                   "skills": new.skills or old.skills, "hours": new.hours or old.hours})
+        new.enrollment_ids.unlink()
+        new.unlink()
+        self.course_id = old
+        return old
 
     def _reuse_bank(self, course, cert):
         Q = self.env["campus.question"].sudo()
@@ -671,6 +847,30 @@ def _rubric(criterios):
                    "<td>No cumple.</td></tr>" % html_escape(c) for c in criterios)
     return ("<h4>Rúbrica</h4><table class='table'><tr><th>Criterio</th><th>BUENO (100 %)</th><th>REGULAR (60 %)</th>"
             "<th>INSUFICIENTE (0 %)</th></tr>" + rows + "</table>")
+
+
+def _num(v):
+    try:
+        return float(str(v).replace(",", "."))
+    except (TypeError, ValueError):
+        return 4.0
+
+
+def _bib_html(bib):
+    e = html_escape
+    out = []
+    if bib.get("principal"):
+        out.append("<h4>Libro guía</h4><table class='table'><tr><th>Libro</th><th>Autor</th><th>Tema</th><th>Qué leer</th></tr>%s</table>" % "".join(
+            "<tr><td>%s%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
+                ("<a href='%s' target='_blank'>%s</a>" % (e(b["url"]), e(b["titulo"]))) if b.get("url", "").startswith("http") else e(b["titulo"]),
+                ("<br/><small>%s</small>" % e(b["referencia"])) if b.get("referencia") else "",
+                e(b.get("autor")), e(b.get("tema")), e(b.get("paginas"))) for b in bib["principal"]))
+    if bib.get("complementaria"):
+        out.append("<h4>Material de apoyo complementario</h4><ul>%s</ul>" % "".join(
+            "<li>%s <small>— %s</small></li>" % (
+                ("<a href='%s' target='_blank'>%s</a>" % (e(b["url"]), e(b["titulo"]))) if b.get("url", "").startswith("http") else e(b["titulo"]),
+                e(b.get("autor") or b.get("referencia") or "")) for b in bib["complementaria"]))
+    return "".join(out)
 
 
 def _clean_slides(slides):

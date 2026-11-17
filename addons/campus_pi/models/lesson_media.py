@@ -15,8 +15,13 @@ from urllib.parse import parse_qs, urlparse
 
 from lxml import html as lxml_html
 
+from markupsafe import Markup
+
 from odoo import models
 from odoo.tools import html2plaintext
+
+from ..tools import deck as deck_tools
+from ..tools import visual
 
 VIDEO_EXT = (".mp4", ".webm", ".ogg", ".ogv", ".mov", ".m4v")
 IMAGE_EXT = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
@@ -64,6 +69,19 @@ def video_embed(url):
         return "video", url
     # Teams/Stream/SharePoint/otros: se intenta embebido
     return "iframe", url
+
+
+def _short(text, limit=130):
+    """Recorta un texto para pantalla sin cortar palabras (y sin dos puntos colgando)."""
+    t = re.sub(r"\s+", " ", text or "").strip()
+    if len(t) <= limit:
+        return t.rstrip(":")
+    cut = t[:limit]
+    for sep in (". ", "; ", ": ", ", "):
+        k = cut.rfind(sep)
+        if k > limit * .55:
+            return cut[:k].rstrip(",;:") + ("." if sep == ". " else "…")
+    return cut[:cut.rfind(" ")].rstrip(",;:") + "…"
 
 
 class CampusLessonMedia(models.Model):
@@ -171,13 +189,23 @@ class CampusLessonMedia(models.Model):
         self.ensure_one()
         sec = self.section_id
         gen = self.infographic_json if isinstance(self.infographic_json, dict) else {}
-        if gen.get("puntos"):
+        if gen.get("terminos") or gen.get("puntos"):
             cert = sec.course_id.certification_id
+            if gen.get("terminos"):
+                pts = [{"title": str(p.get("termino") or "")[:40], "text": str(p.get("texto") or "")[:260],
+                        "icon": visual.pick_icon(p.get("icono"), "%s %s" % (p.get("termino"), p.get("texto"))),
+                        "label": str(p.get("etiqueta") or "")[:34]}
+                       for p in gen["terminos"][:16] if isinstance(p, dict) and p.get("termino")]
+            else:
+                pts = [{"title": str(p.get("title") or "")[:90], "text": str(p.get("text") or "")[:260],
+                        "icon": visual.pick_icon(p.get("icon"), str(p.get("title") or "")), "label": ""}
+                       for p in gen["puntos"][:MAX_POINTS] if isinstance(p, dict) and p.get("title")]
             return {
-                "title": gen.get("titulo") or sec.name, "objective": gen.get("objetivo") or sec.objective or "",
+                "title": gen.get("titulo") or sec.name,
+                "objective": gen.get("pregunta_orientadora") or gen.get("objetivo") or sec.objective or "",
+                "intro": gen.get("texto_orientador") or "",
                 "key_fact": gen.get("dato_clave") or "",
-                "points": [{"title": str(p.get("title") or "")[:90], "text": str(p.get("text") or "")[:260]}
-                           for p in gen["puntos"][:MAX_POINTS] if isinstance(p, dict) and p.get("title")],
+                "points": pts,
                 "route": [{"name": l.name, "type": l.lesson_type, "min": l.duration_min}
                           for l in sec.lesson_ids if l.id != self.id],
                 "minutes": sum(sec.lesson_ids.mapped("duration_min")),
@@ -187,13 +215,14 @@ class CampusLessonMedia(models.Model):
         blocks = [b for b in self._key_blocks() if b["title"]] or self._key_blocks()
         points = []
         for b in blocks[:MAX_POINTS]:
-            points.append({"title": b["title"] or (b["points"][0][:60] + "…"),
-                           "text": b["points"][0] if b["title"] else " ".join(b["points"][1:2])})
+            t = b["title"] or (b["points"][0][:60] + "…")
+            points.append({"title": t, "text": b["points"][0] if b["title"] else " ".join(b["points"][1:2]),
+                           "icon": visual.pick_icon("", t), "label": ""})
         route = [{"name": l.name, "type": l.lesson_type, "min": l.duration_min}
                  for l in sec.lesson_ids if l.id != self.id]
         cert = sec.course_id.certification_id
         return {
-            "key_fact": "",
+            "key_fact": "", "intro": "",
             "title": sec.name, "objective": sec.objective or self.summary or "",
             "points": points, "route": route,
             "minutes": sum(sec.lesson_ids.mapped("duration_min")),
@@ -202,24 +231,55 @@ class CampusLessonMedia(models.Model):
         }
 
     def slides(self):
-        """Diapositivas generadas: portada, una por bloque de contenido y cierre."""
+        """Diapositivas normalizadas (formato institucional): portada, contenido y cierre."""
         self.ensure_one()
         if isinstance(self.slides_json, list) and self.slides_json:
-            return self.slides_json
+            out = deck_tools.normalize(self.slides_json)
+            if out:
+                return out
         sec = self.section_id
         course = sec.course_id
         is_intro = not self._section_text_lessons()
-        out = [{"title": self.name, "lead": sec.name if not is_intro else course.name,
+        meta = self.slide_meta()
+        raw = [{"layout": "portada", "title": self.name if is_intro else (meta["section"] or sec.name),
+                "subtitle": course.name if is_intro else (course.name or ""),
                 "points": [p for p in [sec.objective or self.summary or course.subtitle or ""] if p]}]
         for b in self._key_blocks()[:8]:
-            out.append({"title": b["title"] or sec.name, "lead": "", "points": b["points"][:5]})
+            raw.append({"title": b["title"] or sec.name, "points": [_short(p) for p in b["points"][:4]]})
         if is_intro and course.certification_id:
             cert = course.certification_id
-            out.append({"title": "Tu meta: %s" % cert.name, "lead": "%s · %s" % (cert.provider or "", cert.exam_code or ""),
-                        "points": ["%s (%s %%)" % (d.name, d.weight) for d in cert.domain_ids[:6]]})
+            raw.append({"layout": "tabla" if cert.domain_ids else "puntos", "title": "Tu meta: %s" % cert.name,
+                        "subtitle": "%s · %s" % (cert.provider or "", cert.exam_code or ""), "icon": "objetivo",
+                        "table": {"headers": ["Dominio del examen", "Peso"],
+                                  "rows": [[d.name, "%s %%" % d.weight] for d in cert.domain_ids[:6]]},
+                        "points": [d.name for d in cert.domain_ids[:5]]})
         nxt = [l.name for l in sec.lesson_ids if l.id != self.id][:5]
-        out.append({"title": "Para continuar", "lead": "Actividades de esta sección",
-                    "points": nxt or ["Pregúntale al tutor IA cualquier duda sobre este tema."]})
+        raw.append({"layout": "cierre", "title": "Para continuar", "subtitle": "Actividades de esta sección",
+                    "points": nxt or ["Pregúntale al tutor IA cualquier duda sobre este tema."], "icon": "cohete"})
+        return deck_tools.normalize(raw)
+
+    def slide_meta(self):
+        self.ensure_one()
+        sec = self.section_id
+        m = re.match(r"(?i)\s*(n[úu]cleo\s+\d+)\s*[–-]?\s*(.*)", sec.name or "")
+        return {"course": sec.course_id.name or "", "nucleo_label": (m.group(1).capitalize() if m else sec.name or ""),
+                "section": (m.group(2) if m and m.group(2) else sec.name or ""),
+                "program": "Tecnología en Desarrollo de Software y Aplicativos Móviles",
+                "teacher": ", ".join(sec.course_id.teacher_ids.mapped("name")[:2])}
+
+    def illustration(self, slide):
+        return Markup(visual.illustration_svg(slide.get("icon"), slide.get("icon_label") or ""))
+
+    def term_illustration(self, point):
+        return Markup(visual.illustration_svg(point.get("icon"), point.get("label") or ""))
+
+    def activity_questions(self):
+        """Preguntas tipo caso de la actividad interactiva (sin revelar la respuesta en el HTML)."""
+        self.ensure_one()
+        out = []
+        for i, q in enumerate(self.activity_json or []):
+            if isinstance(q, dict) and q.get("enunciado") and q.get("opciones"):
+                out.append({"n": i, "text": q["enunciado"], "options": [o.get("texto") for o in q["opciones"]]})
         return out
 
     def show_content(self):
@@ -236,9 +296,9 @@ class CampusLessonMedia(models.Model):
         return (self.lesson_type in ("lectura", "actividad")
                 and len(html2plaintext(self.content or "").strip()) < 300 and not self.media())
 
-    def narration(self, slide):
-        txt = " ".join([slide.get("title") or "", slide.get("lead") or ""] + list(slide.get("points") or []))
-        return re.sub(r"\s+", " ", txt).strip()
+    def narration(self, slide, index=0, total=1):
+        """Texto que lee la voz: el guion del agente o uno conversacional armado a partir de los puntos."""
+        return deck_tools.speakable(deck_tools.narration(slide, index, total))
 
     def youtube_search_url(self):
         q = self.video_query or "%s %s" % (self.summary or self.name, self.section_id.course_id.name)
@@ -258,3 +318,104 @@ class CampusLessonMedia(models.Model):
         rnd = random.Random(self.id)
         pick = rnd.sample(ids, min(n, len(ids)))
         return self.env["campus.question"].browse(pick)
+
+    # ------------------------------------------------------ archivos y voz
+    def pptx_bytes(self):
+        self.ensure_one()
+        from ..tools import office
+        return office.build_pptx(self.slides(), self.slide_meta())
+
+    def voice_mp3(self, index):
+        """MP3 de la narración de la diapositiva ``index`` (voz neuronal, guardado en caché)."""
+        self.ensure_one()
+        import base64
+        import hashlib
+        from ..tools import tts
+        icp = self.env["ir.config_parameter"].sudo()
+        if icp.get_param("campus_pi.tts_disabled") or not tts.available():
+            return None
+        slides = self.slides()
+        if not 0 <= index < len(slides):
+            return None
+        text = self.narration(slides[index], index, len(slides))
+        if not text:
+            return None
+        voice = icp.get_param("campus_pi.tts_voice") or tts.DEFAULT_VOICE
+        rate = icp.get_param("campus_pi.tts_rate") or tts.DEFAULT_RATE
+        key = hashlib.sha1(("%s|%s|%s" % (voice, rate, text)).encode()).hexdigest()
+        Att = self.env["ir.attachment"].sudo()
+        name = "campus_tts_%s.mp3" % key
+        att = Att.search([("res_model", "=", "campus.lesson"), ("name", "=", name)], limit=1)
+        if att:
+            return base64.b64decode(att.datas)
+        mp3 = tts.synthesize(text, voice, rate)
+        Att.create({"name": name, "res_model": "campus.lesson", "res_id": self.id, "type": "binary",
+                    "mimetype": "audio/mpeg", "datas": base64.b64encode(mp3)})
+        return mp3
+
+
+class CampusSectionKit(models.Model):
+    _inherit = "campus.section"
+
+    def _kit(self):
+        self.ensure_one()
+        kit = dict(self.kit_json or {}) if isinstance(self.kit_json, dict) else {}
+        les = self.lesson_ids
+        if not kit.get("infografia"):
+            ig = les.filtered(lambda l: l.lesson_type == "infografia")[:1]
+            kit["infografia"] = ig.infographic_json if ig and isinstance(ig.infographic_json, dict) else {}
+            if ig and not kit["infografia"]:
+                data = ig.infographic()
+                kit["infografia"] = {"titulo": data["title"], "pregunta_orientadora": data["objective"],
+                                     "terminos": [{"termino": p["title"], "texto": p["text"], "icono": p["icon"]}
+                                                  for p in data["points"]]}
+        if not kit.get("lectura"):
+            lec = les.filtered(lambda l: l.lesson_type == "lectura")[:1]
+            kit["lectura"] = {"titulo": lec.name or self.name, "secciones_html": lec.content or ""}
+        return kit
+
+    def package_files(self):
+        """[(nombre, bytes)] con los formatos institucionales del núcleo (Word + PowerPoint)."""
+        self.ensure_one()
+        from ..tools import office, tts
+        les = self.lesson_ids
+        deck_l = les.filtered(lambda l: l.lesson_type in ("video", "presentacion") and l.slides_json)[:1] or \
+            les.filtered(lambda l: l.lesson_type in ("video", "presentacion"))[:1]
+        kit = self._kit()
+        anchor = deck_l or les[:1]
+        meta = anchor.slide_meta() if anchor else {"course": self.course_id.name, "section": self.name}
+        m = re.search(r"\d+", meta.get("nucleo_label") or "")
+        meta.update({"nucleo_num": m.group(0) if m else "", "objective": self.objective or "",
+                     "credits": 3,
+                     "voice": dict(tts.VOICES).get(self.env["ir.config_parameter"].sudo().get_param("campus_pi.tts_voice")
+                                                   or tts.DEFAULT_VOICE, "voz neuronal")})
+        n = meta.get("nucleo_num") or ""
+        tag = "N%s" % n if n else re.sub(r"\W+", "_", self.name)[:20]
+        slides = deck_l.slides() if deck_l else []
+        files = []
+        if kit.get("bibliografia"):
+            files.append(("5. Recursos bibliográficos %s.docx" % tag, office.docx_bibliografia(kit, meta)))
+        files.append(("5.1 Lectura %s.docx" % tag, office.docx_lectura(kit, meta)))
+        if slides:
+            files.append(("6. Guion del video explicativo %s.docx" % tag, office.docx_guion(slides, meta)))
+            files.append(("6.1 Presentación %s.pptx" % tag, office.build_pptx(slides, meta)))
+        act = kit.get("actividad") or {}
+        act_l = les.filtered(lambda l: l.lesson_type == "actividad" and l.activity_json)[:1]
+        if act_l and not act.get("preguntas"):
+            act = dict(act, preguntas=act_l.activity_json, titulo=act.get("titulo") or act_l.name)
+        if act.get("preguntas"):
+            files.append(("7. Actividad formativa H5P %s.docx" % tag, office.docx_actividad(act, slides, meta)))
+        if kit.get("infografia"):
+            files.append(("8. Infografía %s.docx" % tag, office.docx_infografia(kit["infografia"], meta)))
+        if kit.get("caso"):
+            files.append(("11. Caso integrador %s (con rúbrica).docx" % tag, office.docx_caso(kit["caso"], meta)))
+        return files
+
+    def package_zip(self):
+        import io
+        import zipfile
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            for name, data in self.package_files():
+                z.writestr(name, data)
+        return buf.getvalue()

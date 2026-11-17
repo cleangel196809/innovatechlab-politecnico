@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from odoo import fields, models
 
+from ..tools.tts import VOICES
+
 PROVIDER_SELECTION = [
     ("", "Automático (el primero con clave)"), ("gemini", "Gemini (Google) – nivel gratuito"),
     ("groq", "Groq (Llama) – nivel gratuito"), ("anthropic", "Claude (Anthropic)"),
@@ -21,3 +23,7 @@ class ResConfigSettings(models.TransientModel):
     campus_ai_model = fields.Char("Modelo", config_parameter="campus_pi.ai_model",
                                   help="Vacío = modelo recomendado del proveedor.")
     campus_claude_model = fields.Char("Modelo Claude", config_parameter="campus_pi.claude_model")
+    campus_tts_voice = fields.Selection(VOICES, "Voz de la narración", config_parameter="campus_pi.tts_voice",
+                                        default="es-CO-GonzaloNeural")
+    campus_tts_rate = fields.Char("Velocidad de la voz", config_parameter="campus_pi.tts_rate", default="-4%",
+                                  help="Porcentaje respecto a la velocidad normal, por ejemplo -4% o +5%.")

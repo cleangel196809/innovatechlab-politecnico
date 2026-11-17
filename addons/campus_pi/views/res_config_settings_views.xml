@@ -18,6 +18,12 @@
                         <setting string="Compatible con OpenAI"><field name="campus_compatible_api_key" password="True"/><field name="campus_ai_base_url" placeholder="https://openrouter.ai/api/v1"/></setting>
                         <setting string="Modelo" help="Vacío = modelo recomendado del proveedor."><field name="campus_ai_model"/></setting>
                     </block>
+                    <block title="Voz de presentaciones y videos">
+                        <setting string="Voz" help="Voces neuronales en español (edge-tts). Si no responden, se usa la voz del navegador.">
+                            <field name="campus_tts_voice"/>
+                        </setting>
+                        <setting string="Velocidad"><field name="campus_tts_rate"/></setting>
+                    </block>
                 </app>
             </xpath>
         </field>

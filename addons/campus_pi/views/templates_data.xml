@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="data_home" name="Admin - base de datos">
+        <t t-call="campus_pi.layout">
+            <section class="cp-hero">
+                <div>
+                    <p class="cp-eyebrow">Administración</p>
+                    <h1>🗄️ Base de datos del campus</h1>
+                    <p>Consulta, crea, edita y elimina los registros del campus. Los usuarios eliminados se archivan para conservar su historial y microcredenciales.</p>
+                </div>
+            </section>
+            <div class="cp-grid cp-grid-3">
+                <a t-foreach="tables" t-as="t" class="cp-card cp-data-tile" t-attf-href="/campus/admin/datos/#{t['key']}">
+                    <h3 t-esc="t['title']"/>
+                    <p class="cp-muted cp-small"><b t-esc="t['count']"/> registros · <code t-esc="t['model']"/></p>
+                </a>
+            </div>
+            <p class="cp-small cp-muted">Para operaciones avanzadas (importaciones masivas, permisos, campos técnicos) use también el <a href="/web">backend de Odoo</a>.</p>
+        </t>
+    </template>
+
+    <template id="data_list" name="Admin - lista de registros">
+        <t t-call="campus_pi.layout">
+            <section class="cp-hero">
+                <div>
+                    <p class="cp-eyebrow"><a href="/campus/admin/datos">Base de datos</a></p>
+                    <h1 t-esc="title"/>
+                    <p><t t-esc="total"/> registros</p>
+                </div>
+            </section>
+            <div t-if="msg" class="cp-alert cp-alert-ok" t-esc="msg"/>
+            <div t-if="error" class="cp-alert cp-alert-error" t-esc="error"/>
+            <div class="cp-card">
+                <div class="cp-row">
+                    <form method="get" class="cp-row">
+                        <input type="search" name="q" t-att-value="q" placeholder="Buscar por nombre…"/>
+                        <button class="cp-btn cp-btn-ghost cp-btn-sm">Buscar</button>
+                    </form>
+                    <a t-attf-href="/campus/admin/datos/#{key}/nuevo" class="cp-btn cp-btn-primary cp-btn-sm">＋ Nuevo</a>
+                </div>
+                <div class="cp-table-wrap">
+                    <table class="cp-table">
+                        <tr><th>ID</th><th t-foreach="cols" t-as="c" t-esc="c"/><th/></tr>
+                        <tr t-foreach="rows" t-as="r">
+                            <td><t t-esc="r['id']"/></td>
+                            <td t-foreach="r['cells']" t-as="v" t-esc="v"/>
+                            <td class="cp-nowrap">
+                                <a t-attf-href="/campus/admin/datos/#{key}/#{r['id']}" class="cp-btn cp-btn-ghost cp-btn-sm">Editar</a>
+                                <form method="post" t-attf-action="/campus/admin/datos/#{key}/#{r['id']}/eliminar" style="display:inline"
+                                      onsubmit="return confirm('¿Eliminar este registro? Esta acción no se puede deshacer.');">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <button class="cp-btn cp-btn-ghost cp-btn-sm">🗑</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <p t-if="pages &gt; 1" class="cp-row cp-small">
+                    <a t-if="page &gt; 1" t-attf-href="?q=#{q}&amp;page=#{page - 1}">← Anterior</a>
+                    <span>Página <t t-esc="page"/> de <t t-esc="pages"/></span>
+                    <a t-if="page &lt; pages" t-attf-href="?q=#{q}&amp;page=#{page + 1}">Siguiente →</a>
+                </p>
+            </div>
+        </t>
+    </template>
+
+    <template id="data_form" name="Admin - formulario de registro">
+        <t t-call="campus_pi.layout">
+            <section class="cp-hero">
+                <div>
+                    <p class="cp-eyebrow"><a href="/campus/admin/datos">Base de datos</a> · <a t-attf-href="/campus/admin/datos/#{key}" t-esc="title"/></p>
+                    <h1><t t-if="rec" t-esc="rec.display_name"/><t t-else="">Nuevo registro</t></h1>
+                </div>
+            </section>
+            <div t-if="error" class="cp-alert cp-alert-error" t-esc="error"/>
+            <form method="post" class="cp-card cp-form cp-form-grid">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <t t-if="key == 'usuarios'">
+                    <div>
+                        <label>Rol en el campus</label>
+                        <select name="campus_role_set">
+                            <option value="student" t-att-selected="role == 'student'">Estudiante</option>
+                            <option value="teacher" t-att-selected="role == 'teacher'">Docente</option>
+                            <option value="admin" t-att-selected="role == 'admin'">Administrador</option>
+                        </select>
+                    </div>
+                    <div>
+                        <p class="cp-small cp-muted" t-if="not rec">La cuenta se crea con la contraseña <b>Poli2026*</b> y se pide cambiarla en el primer ingreso.</p>
+                        <label t-if="rec" class="cp-check-item"><input type="checkbox" name="reset_password" value="1"/> Restablecer la contraseña a Poli2026* (se pedirá cambiarla)</label>
+                    </div>
+                </t>
+                <div t-foreach="items" t-as="it" t-att-class="'cp-span-2' if it['type'] in ('text', 'html', 'many2many') else ''">
+                    <t t-set="v" t-value="values.get(it['name'])"/>
+                    <label t-if="it['type'] != 'boolean'"><t t-esc="it['label']"/><t t-if="it['required']"> *</t></label>
+                    <label t-if="it['type'] == 'boolean'" class="cp-check-item"><input type="checkbox" t-att-name="it['name']" value="1" t-att-checked="v"/> <t t-esc="it['label']"/></label>
+                    <textarea t-elif="it['type'] in ('text', 'html')" t-att-name="it['name']" rows="5" t-esc="v or ''"/>
+                    <select t-elif="it['type'] == 'selection'" t-att-name="it['name']">
+                        <option value="">—</option>
+                        <option t-foreach="it['options']" t-as="o" t-att-value="o[0]" t-att-selected="str(v) == o[0]" t-esc="o[1]"/>
+                    </select>
+                    <t t-elif="it['type'] == 'many2one'">
+                        <select t-if="it['options'] is not None" t-att-name="it['name']">
+                            <option value="">—</option>
+                            <option t-foreach="it['options']" t-as="o" t-att-value="o[0]" t-att-selected="v == o[0]" t-esc="o[1]"/>
+                        </select>
+                        <input t-else="" type="number" t-att-name="it['name']" t-att-value="v" t-att-placeholder="'ID de %s' % it['comodel']"/>
+                        <small t-if="it.get('current')" class="cp-muted" t-esc="it['current']"/>
+                    </t>
+                    <select t-elif="it['type'] == 'many2many' and it['options'] is not None" t-att-name="it['name']" multiple="multiple" size="6">
+                        <option t-foreach="it['options']" t-as="o" t-att-value="o[0]" t-att-selected="o[0] in (v or [])" t-esc="o[1]"/>
+                    </select>
+                    <p t-elif="it['type'] == 'many2many'" class="cp-small cp-muted">Demasiados registros para listarlos: edítelo en el backend de Odoo.</p>
+                    <input t-elif="it['type'] in ('integer', 'float', 'monetary')" type="number" step="any" t-att-name="it['name']" t-att-value="v"/>
+                    <input t-elif="it['type'] == 'date'" type="date" t-att-name="it['name']" t-att-value="v"/>
+                    <input t-elif="it['type'] == 'datetime'" type="datetime-local" t-att-name="it['name']" t-att-value="v"/>
+                    <input t-else="" type="text" t-att-name="it['name']" t-att-value="v" t-att-required="'required' if it['required'] else None"/>
+                    <small t-if="it['help']" class="cp-muted cp-small" t-esc="it['help'][:160]"/>
+                </div>
+                <div class="cp-span-2 cp-row">
+                    <button class="cp-btn cp-btn-primary">Guardar</button>
+                    <a t-attf-href="/campus/admin/datos/#{key}" class="cp-btn cp-btn-ghost">Cancelar</a>
+                </div>
+            </form>
+        </t>
+    </template>
+</odoo>

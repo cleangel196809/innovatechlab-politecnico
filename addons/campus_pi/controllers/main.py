@@ -12,6 +12,7 @@ from odoo import fields, http, _
 from odoo.addons.web.controllers.home import Home
 from odoo.exceptions import AccessDenied, UserError
 from odoo.http import request
+from ..tools import people as people_tools
 
 _logger = logging.getLogger(__name__)
 MAX_UPLOAD_MB = 40  # Neon gratis tiene 0,5 GB: los videos largos deben ir por enlace (YouTube/Drive)
@@ -48,6 +49,23 @@ def _upload(name, kw):
     return f
 
 
+def _uploads(name, kw):
+    """[(nombre, bytes)] de un <input type=file multiple> (decodifica los que llegan en base64)."""
+    out = []
+    enc = kw.get(name + "_enc") == "b64"
+    for f in request.httprequest.files.getlist(name):
+        if not f or not f.filename:
+            continue
+        data = f.read()
+        if enc:
+            try:
+                data = base64.b64decode(data, validate=False)
+            except (ValueError, TypeError):
+                data = b""
+        out.append((os.path.basename(f.filename), data))
+    return out
+
+
 def _decode_text(kw, name):
     """Texto enviado como <name>_b64 (UTF-8 en base64) o tal cual en <name>."""
     enc = kw.get(name + "_b64")
@@ -81,6 +99,8 @@ class Campus(http.Controller):
         return request.env.user.campus_role
 
     def _render(self, template, values=None):
+        if not _uid_is_public() and request.env.user.campus_must_change_password:
+            return request.redirect("/campus/cambiar-clave")
         vals = {"user": request.env.user, "role": self._role(),
                 "ai_enabled": request.env["campus.ai.agent"].sudo().is_enabled(),
                 "ai_provider": request.env["campus.ai.agent"].sudo().provider_label(),
@@ -118,10 +138,13 @@ class Campus(http.Controller):
     # -------------------------------------------------------------- login
     @http.route("/campus/login", type="http", auth="none", methods=["GET", "POST"], csrf=True, sitemap=False)
     def campus_login(self, login=None, password=None, **kw):
-        values = {"error": None, "login": login or ""}
+        values = {"error": None, "login": login or "",
+                  "info": _("Contraseña actualizada. Ya puedes ingresar.") if kw.get("info") == "clave" else None}
         if request.httprequest.method == "POST":
             try:
-                request.session.authenticate(request.db, login, password)
+                uid = request.session.authenticate(request.db, login, password)
+                if uid and request.env["res.users"].sudo().browse(uid).campus_must_change_password:
+                    return request.redirect("/campus/cambiar-clave")
                 return request.redirect("/campus")
             except AccessDenied:
                 values["error"] = _("Usuario o contraseña incorrectos.")
@@ -154,7 +177,10 @@ class Campus(http.Controller):
                 "ai_msgs": env["campus.ai.message"].sudo().search_count([("role", "=", "assistant")]),
                 "tutorings": env["campus.tutoring"].sudo().search_count([("state", "in", ("requested", "confirmed"))]),
             }
-            return self._render("campus_pi.dashboard_admin", {"stats": stats, "courses": Course.search([])})
+            Course.auto_regenerate_pending()
+            return self._render("campus_pi.dashboard_admin", {
+                "stats": stats, "courses": Course.search([("name", "not like", "[Regenerando]%")]),
+                "regen": Course.regen_status()})
         if role == "teacher":
             courses = Course.search([("teacher_ids", "in", user.id)])
             now = fields.Datetime.now()
@@ -504,6 +530,16 @@ class Campus(http.Controller):
                         "use_ai": True,
                     },
                 })
+                job.add_materials(_uploads("materials", kw))
+                for field, role in (("roster_students", "student"), ("roster_teachers", "teacher")):
+                    fr = _uploads(field, kw)
+                    if fr and fr[0][1]:
+                        people, errs = people_tools.parse_people(fr[0][1], fr[0][0])
+                        if not people:
+                            raise UserError(_("La hoja de %s no tiene filas válidas con nombre y correo%s.") % (
+                                "estudiantes" if role == "student" else "docentes",
+                                (" (fila %s: %s)" % (errs[0]["row"], errs[0]["error"])) if errs else ""))
+                        job.write({field: base64.b64encode(fr[0][1]), field + "_name": fr[0][0]})
                 job.action_start()
                 return request.redirect("/campus/admin/agente/%s" % job.id)
             except UserError as e:
@@ -526,7 +562,7 @@ class Campus(http.Controller):
         redirect = self._require("admin")
         if redirect:
             return redirect
-        from ..tools import llm
+        from ..tools import llm, tts
         agent = request.env["campus.ai.agent"].sudo()
         ICP = request.env["ir.config_parameter"].sudo()
         msg, test = None, None
@@ -543,6 +579,28 @@ class Campus(http.Controller):
                 url = (kw.get("base_url") or "").strip()
                 ICP.set_param("campus_pi.ai_base_url", url if url.startswith("http") else False)
                 msg = "Configuración guardada."
+            elif kw.get("action") == "voice":
+                from ..tools import tts
+                if kw.get("tts_voice") in dict(tts.VOICES):
+                    ICP.set_param("campus_pi.tts_voice", kw["tts_voice"])
+                if re.match(r"^[+-]\d{1,2}%$", kw.get("tts_rate") or ""):
+                    ICP.set_param("campus_pi.tts_rate", kw["tts_rate"])
+                ICP.set_param("campus_pi.tts_disabled", "1" if kw.get("tts_disabled") else False)
+                msg = "Voz guardada. Las narraciones nuevas se generan con la voz elegida."
+            elif kw.get("action") == "mail":
+                from ..tools import mailer
+                if kw.get("mail_provider") in ("brevo", "resend", "odoo"):
+                    ICP.set_param("campus_pi.mail_provider", kw["mail_provider"])
+                if (kw.get("mail_api_key") or "").strip():
+                    ICP.set_param("campus_pi.mail_api_key", kw["mail_api_key"].strip())
+                ICP.set_param("campus_pi.mail_from", (kw.get("mail_from") or "").strip())
+                msg = "Correo saliente guardado."
+                if kw.get("mail_test"):
+                    ok, detail = mailer.send(request.env, request.env.user.email or request.env.user.login,
+                                             "Prueba de correo · InnovaTech Lab",
+                                             "<p>El correo saliente del campus funciona.</p>")
+                    msg = ("Correo de prueba enviado a %s (%s)." % (request.env.user.email, detail)) if ok \
+                        else ("No se pudo enviar el correo de prueba: %s" % detail)
             elif kw.get("action") == "test":
                 if not agent.is_enabled():
                     test = {"ok": False, "text": "No hay un proveedor con clave configurada."}
@@ -567,7 +625,15 @@ class Campus(http.Controller):
             "status": status, "msg": msg, "test": test, "active": agent.provider_label(),
             "provider": ICP.get_param("campus_pi.ai_provider") or "",
             "model": ICP.get_param("campus_pi.ai_model") or "",
-            "base_url": ICP.get_param("campus_pi.ai_base_url") or ""})
+            "base_url": ICP.get_param("campus_pi.ai_base_url") or "",
+            "voices": tts.VOICES, "tts_ok": tts.available(),
+            "tts_voice": ICP.get_param("campus_pi.tts_voice") or tts.DEFAULT_VOICE,
+            "tts_rate": ICP.get_param("campus_pi.tts_rate") or tts.DEFAULT_RATE,
+            "tts_disabled": bool(ICP.get_param("campus_pi.tts_disabled")),
+            "mail_provider": ICP.get_param("campus_pi.mail_provider") or "brevo",
+            "mail_from": ICP.get_param("campus_pi.mail_from") or "",
+            "mail_key_set": bool(ICP.get_param("campus_pi.mail_api_key") or os.environ.get("BREVO_API_KEY")
+                                 or os.environ.get("RESEND_API_KEY"))})
 
     def _job(self, job_id):
         job = request.env["campus.agent.job"].sudo().browse(job_id).exists()
@@ -609,8 +675,10 @@ class Campus(http.Controller):
         if redirect:
             return redirect
         env = request.env
+        env["campus.course"].sudo().auto_regenerate_pending()
         return self._render("campus_pi.admin_courses", {
-            "courses": env["campus.course"].sudo().search([]),
+            "regen": env["campus.course"].sudo().regen_status(),
+            "courses": env["campus.course"].sudo().search([("name", "not like", "[Regenerando]%")]),
             "students": env["res.users"].sudo().search([("groups_id", "in", env.ref("campus_pi.group_campus_student").id)]),
             "nuevo": int(kw.get("nuevo") or 0), "msg": kw.get("msg")})
 
@@ -641,11 +709,13 @@ class Campus(http.Controller):
         if redirect:
             return redirect
         email = (kw.get("email") or "").strip().lower()
-        if email and kw.get("name") and kw.get("password"):
+        if email and kw.get("name"):
+            from ..models.user_import import default_password
             Users = request.env["res.users"].sudo()
             if not Users.search_count([("login", "=", email)]):
                 Users.with_context(no_reset_password=True).create({
-                    "name": kw["name"], "login": email, "email": email, "password": kw["password"],
-                    "tz": "America/Bogota",
+                    "name": kw["name"], "login": email, "email": email,
+                    "password": kw.get("password") or default_password(request.env),
+                    "tz": "America/Bogota", "campus_must_change_password": True,
                     "groups_id": [(6, 0, [request.env.ref("campus_pi.group_campus_student").id])]})
         return request.redirect("/campus/admin/cursos?msg=Estudiante%20creado")

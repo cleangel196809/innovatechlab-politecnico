@@ -106,7 +106,7 @@ const status = async (page, url, opts) => (await page.request.fetch(B + url, opt
   // video narrado
   await s.goto(B + '/campus/curso/2/leccion/47');
   await s.click('[data-deck=next]'); await s.click('[data-deck=next]');
-  ok('video narrado: navega diapositivas', (await s.$eval('.cp-slide.active .cp-slide-num', e => e.textContent)).startsWith('3'));
+  ok('video narrado: navega diapositivas', (await s.$$eval('.cp-slide', xs => xs.findIndex(x => x.classList.contains('active')))) === 2);
   await s.click('[data-deck=play]'); await s.waitForTimeout(500);
   ok('video narrado: botón reproducir cambia a pausar', (await s.$eval('[data-deck=play]', e => e.textContent)).includes('Pausar'));
   await s.click('[data-deck=play]');

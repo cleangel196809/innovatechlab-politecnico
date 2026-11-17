@@ -12,8 +12,14 @@ Campus virtual de microcertificaciones con agentes de IA
 * Simulador de examen de certificación internacional con analítica por dominio
 * Tutoría virtual con docente y tutoría con agente de IA (Claude)
 * Microcredenciales verificables públicamente
+* Presentaciones y videos con el formato institucional, voz neuronal natural y descarga en PowerPoint
+* Paquete del núcleo en Word con los formatos de la Unidad Virtual (lectura, bibliografía, guion, actividad H5P, infografía y caso integrador)
+* Carga masiva de estudiantes y docentes desde Excel (nombre, correo y WhatsApp)
+* Administración de la base de datos (CRUD) desde el campus
+* Contraseña inicial Poli2026* con cambio obligatorio y recuperación por correo
+* Material del curso opcional en cualquier formato (también .zip) como fuente del agente, y regeneración de cursos
 """,
-    "version": "17.0.1.5.0",
+    "version": "17.0.1.8.0",
     "category": "Education",
     "author": "InnovaTech Lab - Politécnico Internacional",
     "website": "https://github.com/cleangel196809/innovatechlab-politecnico",
@@ -45,6 +51,7 @@ Campus virtual de microcertificaciones con agentes de IA
         "views/templates_course.xml",
         "views/templates_admin.xml",
         "views/templates_value.xml",
+        "views/templates_data.xml",
     ],
     "assets": {
         "campus_pi.assets_campus": [

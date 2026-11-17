@@ -65,13 +65,19 @@
             tick();
         }
 
-        // Presentaciones generadas (y video narrado con la voz del navegador)
+        // Presentaciones y videos generados: voz neuronal del servidor (respaldo: voz del navegador),
+        // puntos que aparecen al ritmo de la narración, subtítulos y pantalla completa.
         document.querySelectorAll(".cp-deck").forEach(function (deck) {
             var slides = deck.querySelectorAll(".cp-slide");
             var dots = deck.querySelector(".cp-deck-dots");
             var playBtn = deck.querySelector("[data-deck=play]");
-            var i = 0, playing = false, timer = null;
+            var ccBtn = deck.querySelector("[data-deck=cc]");
+            var cap = deck.querySelector(".cp-deck-caption");
+            var voiceUrl = deck.dataset.voice;
+            var playLabel = playBtn ? playBtn.innerHTML : "";
+            var i = 0, playing = false, timer = null, audio = null, token = 0, serverOk = !!voiceUrl;
             var synth = window.speechSynthesis;
+            var cache = {};
             if (!slides.length) { return; }
             slides.forEach(function (_s, k) {
                 var b = document.createElement("button");
@@ -80,41 +86,98 @@
                 b.addEventListener("click", function () { stop(); show(k); });
                 dots.appendChild(b);
             });
+            function steps(sl) {
+                return sl.querySelectorAll(".cp-sl-cards li, .cp-sl-steps li, .cp-sl-table tr + tr");
+            }
+            function reveal(frac) {
+                var st = steps(slides[i]);
+                var n = Math.min(st.length, Math.floor(frac * (st.length + 0.6)) + 1);
+                st.forEach(function (li, k) { li.classList.toggle("cp-hidden", k >= n); });
+            }
             function show(k) {
                 i = Math.max(0, Math.min(slides.length - 1, k));
                 slides.forEach(function (s, n) { s.classList.toggle("active", n === i); });
                 dots.querySelectorAll("button").forEach(function (b, n) { b.classList.toggle("on", n === i); });
+                steps(slides[i]).forEach(function (li) { li.classList.remove("cp-hidden"); });
+                if (cap) { cap.textContent = slides[i].dataset.say || ""; }
             }
-            function voice() {
+            function bestVoice() {
                 if (!synth) { return null; }
                 var vs = synth.getVoices().filter(function (v) { return /^es/i.test(v.lang); });
-                return vs.filter(function (v) { return /CO|419|MX|US/.test(v.lang); })[0] || vs[0] || null;
+                var score = function (v) {
+                    var s = 0;
+                    if (/natural|neural|online|google|premium|enhanced/i.test(v.name)) { s += 10; }
+                    if (/CO/.test(v.lang)) { s += 4; } else if (/419|MX|US/.test(v.lang)) { s += 3; }
+                    if (v.localService === false) { s += 1; }
+                    return s;
+                };
+                vs.sort(function (a, b) { return score(b) - score(a); });
+                return vs[0] || null;
+            }
+            function audioFor(k) {
+                if (!cache[k]) {
+                    var a = new Audio(voiceUrl + k);
+                    a.preload = "auto";
+                    cache[k] = a;
+                }
+                return cache[k];
+            }
+            function next() {
+                if (!playing) { return; }
+                if (i < slides.length - 1) { timer = setTimeout(function () { show(i + 1); say(); }, 700); } else { stop(); }
+            }
+            function sayBrowser(text, my) {
+                if (!(synth && window.SpeechSynthesisUtterance)) {
+                    timer = setTimeout(next, Math.max(5000, text.length * 65));
+                    return;
+                }
+                // Frase por frase: pausas naturales y sin el corte de Chrome en textos largos
+                var parts = text.match(/[^.!?¿¡]+[.!?]*|[¿¡][^?!]+[?!]/g) || [text];
+                var v = bestVoice(), done = 0, total = text.length || 1;
+                var speakPart = function (k) {
+                    if (!playing || my !== token) { return; }
+                    if (k >= parts.length) { next(); return; }
+                    var u = new SpeechSynthesisUtterance(parts[k].trim());
+                    u.lang = v ? v.lang : "es-CO";
+                    if (v) { u.voice = v; }
+                    u.rate = 0.97;
+                    u.pitch = 1;
+                    u.onend = function () { done += parts[k].length; reveal(done / total); setTimeout(function () { speakPart(k + 1); }, 180); };
+                    u.onerror = function () { speakPart(k + 1); };
+                    synth.speak(u);
+                };
+                speakPart(0);
             }
             function say() {
                 if (!playing) { return; }
+                var my = ++token;
                 var text = slides[i].dataset.say || "";
-                var next = function () {
-                    if (!playing) { return; }
-                    if (i < slides.length - 1) { show(i + 1); say(); } else { stop(); }
-                };
-                if (synth && window.SpeechSynthesisUtterance) {
-                    var u = new SpeechSynthesisUtterance(text);
-                    u.lang = "es-CO";
-                    var v = voice();
-                    if (v) { u.voice = v; }
-                    u.rate = 1;
-                    u.onend = next;
-                    u.onerror = function () { timer = setTimeout(next, 6000); };
-                    synth.speak(u);
+                reveal(0);
+                if (serverOk) {
+                    audio = audioFor(i);
+                    audio.currentTime = 0;
+                    audio.ontimeupdate = function () { if (audio.duration) { reveal(audio.currentTime / audio.duration); } };
+                    audio.onended = function () { if (my === token) { reveal(1); next(); } };
+                    audio.onerror = function () {
+                        if (my !== token) { return; }
+                        serverOk = false;  // el servicio de voz no respondió: voz del navegador
+                        sayBrowser(text, my);
+                    };
+                    var pr = audio.play();
+                    if (pr && pr.catch) { pr.catch(function () { if (my === token && playing) { serverOk = false; sayBrowser(text, my); } }); }
+                    if (i + 1 < slides.length) { audioFor(i + 1); }
                 } else {
-                    timer = setTimeout(next, Math.max(5000, text.length * 60));
+                    sayBrowser(text, my);
                 }
             }
             function stop() {
                 playing = false;
+                token++;
                 clearTimeout(timer);
+                if (audio) { audio.pause(); }
                 if (synth) { synth.cancel(); }
-                if (playBtn) { playBtn.textContent = "▶ Reproducir con narración"; }
+                if (playBtn) { playBtn.innerHTML = playLabel; }
+                steps(slides[i]).forEach(function (li) { li.classList.remove("cp-hidden"); });
             }
             if (playBtn) {
                 playBtn.addEventListener("click", function () {
@@ -124,8 +187,22 @@
                     say();
                 });
             }
-            deck.querySelector("[data-deck=prev]").addEventListener("click", function () { stop(); show(i - 1); });
-            deck.querySelector("[data-deck=next]").addEventListener("click", function () { stop(); show(i + 1); });
+            if (ccBtn && cap) {
+                ccBtn.addEventListener("click", function () {
+                    cap.hidden = !cap.hidden;
+                    ccBtn.setAttribute("aria-pressed", cap.hidden ? "false" : "true");
+                    ccBtn.classList.toggle("on", !cap.hidden);
+                });
+            }
+            var fullBtn = deck.querySelector("[data-deck=full]");
+            if (fullBtn) {
+                fullBtn.addEventListener("click", function () {
+                    if (document.fullscreenElement) { document.exitFullscreen(); }
+                    else if (deck.requestFullscreen) { deck.requestFullscreen(); }
+                });
+            }
+            deck.querySelector("[data-deck=prev]").addEventListener("click", function () { var was = playing; stop(); show(i - 1); if (was) { playBtn.click(); } });
+            deck.querySelector("[data-deck=next]").addEventListener("click", function () { var was = playing; stop(); show(i + 1); if (was) { playBtn.click(); } });
             document.addEventListener("keydown", function (e) {
                 if (/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ""))) { return; }
                 if (e.key === "ArrowRight") { stop(); show(i + 1); }
@@ -220,21 +297,23 @@
                 var btn = form.querySelector("button[type=submit]");
                 if (btn) { btn.disabled = true; }
                 Promise.all(inputs.map(function (input) {
-                    return new Promise(function (resolve, reject) {
-                        var file = input.files[0];
-                        var reader = new FileReader();
-                        reader.onload = function () {
-                            var b64 = String(reader.result).split(",")[1] || "";
-                            var dt = new DataTransfer();
-                            dt.items.add(new File([b64], file.name, { type: "text/plain" }));
-                            input.files = dt.files;
-                            var flag = document.createElement("input");
-                            flag.type = "hidden"; flag.name = input.name + "_enc"; flag.value = "b64";
-                            form.appendChild(flag);
-                            resolve();
-                        };
-                        reader.onerror = reject;
-                        reader.readAsDataURL(file);
+                    // todos los archivos del campo (admite <input multiple>)
+                    return Promise.all(Array.prototype.map.call(input.files, function (file) {
+                        return new Promise(function (resolve, reject) {
+                            var reader = new FileReader();
+                            reader.onload = function () {
+                                resolve(new File([String(reader.result).split(",")[1] || ""], file.name, { type: "text/plain" }));
+                            };
+                            reader.onerror = reject;
+                            reader.readAsDataURL(file);
+                        });
+                    })).then(function (encoded) {
+                        var dt = new DataTransfer();
+                        encoded.forEach(function (f) { dt.items.add(f); });
+                        input.files = dt.files;
+                        var flag = document.createElement("input");
+                        flag.type = "hidden"; flag.name = input.name + "_enc"; flag.value = "b64";
+                        form.appendChild(flag);
                     });
                 })).then(function () {
                     form.dataset.cpEncoded = "1";

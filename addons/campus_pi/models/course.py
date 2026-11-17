@@ -112,6 +112,9 @@ class CampusSection(models.Model):
     date_start = fields.Date("Desde")
     date_end = fields.Date("Hasta")
     lesson_ids = fields.One2many("campus.lesson", "section_id", "Lecciones")
+    kit_json = fields.Json("Materiales del núcleo (formatos institucionales)",
+                           help="Lectura, bibliografía, infografía, actividad y caso integrador generados por el agente. "
+                                "Se usan para descargar el paquete del núcleo en Word y PowerPoint.")
 
 
 class CampusLesson(models.Model):
@@ -136,6 +139,7 @@ class CampusLesson(models.Model):
     location = fields.Char("Lugar (presencial)")
     slides_json = fields.Json("Diapositivas generadas")
     infographic_json = fields.Json("Infografía generada")
+    activity_json = fields.Json("Preguntas de la actividad interactiva")
     video_query = fields.Char("Búsqueda de video sugerida")
     ai_guide = fields.Html("Guion del agente IA",
                            help="Para sesiones presenciales/virtuales asistidas por IA: "

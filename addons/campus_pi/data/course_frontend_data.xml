@@ -105,14 +105,14 @@ Utiliza los aprendizajes adquiridos para responder las preguntas del cuestionari
 Utiliza los aprendizajes adquiridos para desarrollar la actividad de aprendizaje entregable. | Identifica y establece elementos de JavaScript, utilizando herramientas de CSS3, Flexbox y Grid. || Aprobación del proyecto del núcleo, conforme a los criterios de evaluación y objetivos de aprendizaje establecidos. || Al finalizar el Núcleo 3 || Verificar la comprensión conceptual de la lógica básica e interactividad del lado del cliente mediante JavaScript. || Proyecto con evaluación tipo rúbrica.
 Utiliza los aprendizajes adquiridos para responder la actividad evaluativa. | Identifica y describe los elementos para la creación de formularios en HTML y CSS con JavaScript. || Aprobación del cuestionario del núcleo, conforme a los criterios de evaluación y objetivos de aprendizaje establecidos. || Al finalizar el Núcleo 4 || Verificar la comprensión conceptual sobre el uso de formularios, validaciones del lado del cliente y contenidos multimedia en aplicaciones web. || Cuestionario con calificación automática + Proyecto integrador al finalizar el curso.</field>
 </record>
-<record id="course_frontend_s0" model="campus.section">
+<record id="course_frontend_s0" model="campus.section" forcecreate="0">
 <field name="course_id" ref="course_frontend"/><field name="sequence">0</field>
 <field name="name">Inicio</field>
 <field name="objective">Bienvenida, semblanza del docente, guía del estudiante, syllabus y diagnóstico inicial.</field>
 <field name="date_start" eval="(DateTime.today() + relativedelta(days=-7)).strftime('%Y-%m-%d')"/>
 <field name="date_end" eval="(DateTime.today() + relativedelta(days=4)).strftime('%Y-%m-%d')"/>
 </record>
-<record id="course_frontend_s0_l0" model="campus.lesson">
+<record id="course_frontend_s0_l0" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s0"/><field name="sequence">0</field>
 <field name="name">Video de bienvenida</field>
 <field name="lesson_type">video</field>
@@ -120,7 +120,7 @@ Utiliza los aprendizajes adquiridos para responder la actividad evaluativa. | Id
 <field name="summary">Presentación del curso y de la ruta hacia la certificación.</field>
 <field name="content"><![CDATA[<p>Presentación del curso y de la ruta hacia la certificación.</p>]]></field>
 </record>
-<record id="course_frontend_s0_l1" model="campus.lesson">
+<record id="course_frontend_s0_l1" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s0"/><field name="sequence">1</field>
 <field name="name">Guía del estudiante</field>
 <field name="lesson_type">lectura</field>
@@ -128,7 +128,7 @@ Utiliza los aprendizajes adquiridos para responder la actividad evaluativa. | Id
 <field name="summary">Cómo funciona el curso, cronograma y evaluación.</field>
 <field name="content"><![CDATA[<p>Cómo funciona el curso, cronograma y evaluación.</p>]]></field>
 </record>
-<record id="course_frontend_s0_l2" model="campus.lesson">
+<record id="course_frontend_s0_l2" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s0"/><field name="sequence">2</field>
 <field name="name">Ruta de certificación internacional</field>
 <field name="lesson_type">lectura</field>
@@ -136,7 +136,7 @@ Utiliza los aprendizajes adquiridos para responder la actividad evaluativa. | Id
 <field name="summary">Qué examen presentarás, cómo se registra y cómo te prepara el simulador.</field>
 <field name="content"><![CDATA[<p>Qué examen presentarás, cómo se registra y cómo te prepara el simulador.</p>]]></field>
 </record>
-<record id="course_frontend_s0_l3" model="campus.lesson">
+<record id="course_frontend_s0_l3" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s0"/><field name="sequence">3</field>
 <field name="name">Cuestionario diagnóstico inicial</field>
 <field name="lesson_type">quiz</field>
@@ -144,14 +144,14 @@ Utiliza los aprendizajes adquiridos para responder la actividad evaluativa. | Id
 <field name="summary">Mide tus saberes previos; el tutor IA lo usa para personalizar tu ruta.</field>
 <field name="content"><![CDATA[<p>Mide tus saberes previos; el tutor IA lo usa para personalizar tu ruta.</p>]]></field>
 </record>
-<record id="course_frontend_s1" model="campus.section">
+<record id="course_frontend_s1" model="campus.section" forcecreate="0">
 <field name="course_id" ref="course_frontend"/><field name="sequence">1</field>
 <field name="name">Núcleo 1 – Fundamentos front-end y HTML5</field>
 <field name="objective">Identificar los fundamentos del desarrollo front-end y la estructura de un documento HTML5.</field>
 <field name="date_start" eval="(DateTime.today() + relativedelta(days=5)).strftime('%Y-%m-%d')"/>
 <field name="date_end" eval="(DateTime.today() + relativedelta(days=16)).strftime('%Y-%m-%d')"/>
 </record>
-<record id="course_frontend_s1_l0" model="campus.lesson">
+<record id="course_frontend_s1_l0" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s1"/><field name="sequence">0</field>
 <field name="name">Lectura: Fundamentos front-end y HTML5</field>
 <field name="lesson_type">lectura</field>
@@ -159,7 +159,7 @@ Utiliza los aprendizajes adquiridos para responder la actividad evaluativa. | Id
 <field name="summary">Lectura de apropiación de conceptos.</field>
 <field name="content"><![CDATA[<h4>¿Qué hace un desarrollador front-end?</h4><p>Construye la capa que el usuario ve y toca: estructura (HTML5), presentación (CSS3) y comportamiento (JavaScript). Trabaja con diseñadores UX/UI y con el equipo backend que expone APIs.</p><h4>Anatomía de un documento HTML5</h4><ul><li><code>&lt;!DOCTYPE html&gt;</code>, <code>&lt;html lang="es"&gt;</code>, <code>&lt;head&gt;</code> con <code>meta charset</code> y <code>viewport</code>.</li><li>Etiquetas semánticas: <code>header, nav, main, section, article, aside, footer</code>.</li><li>Accesibilidad: textos alternativos, jerarquía de títulos, etiquetas <code>label</code> en formularios (WCAG 2.2).</li></ul><h4>Herramientas</h4><p>VS Code, DevTools del navegador, Git/GitHub, validador W3C y Lighthouse para medir rendimiento y accesibilidad.</p>]]></field>
 </record>
-<record id="course_frontend_s1_l1" model="campus.lesson">
+<record id="course_frontend_s1_l1" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s1"/><field name="sequence">1</field>
 <field name="name">Presentación interactiva</field>
 <field name="lesson_type">presentacion</field>
@@ -167,7 +167,7 @@ Utiliza los aprendizajes adquiridos para responder la actividad evaluativa. | Id
 <field name="summary">Recorrido visual por los conceptos clave del núcleo.</field>
 <field name="content"><![CDATA[<p>Recorrido visual por los conceptos clave del núcleo.</p>]]></field>
 </record>
-<record id="course_frontend_s1_l2" model="campus.lesson">
+<record id="course_frontend_s1_l2" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s1"/><field name="sequence">2</field>
 <field name="name">Infografía del núcleo</field>
 <field name="lesson_type">infografia</field>
@@ -175,7 +175,7 @@ Utiliza los aprendizajes adquiridos para responder la actividad evaluativa. | Id
 <field name="summary">Síntesis gráfica del núcleo.</field>
 <field name="content"><![CDATA[<p>Síntesis gráfica del núcleo.</p>]]></field>
 </record>
-<record id="course_frontend_s1_l3" model="campus.lesson">
+<record id="course_frontend_s1_l3" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s1"/><field name="sequence">3</field>
 <field name="name">Sesión sincrónica virtual</field>
 <field name="lesson_type">sesion_virtual</field>
@@ -186,7 +186,7 @@ Utiliza los aprendizajes adquiridos para responder la actividad evaluativa. | Id
 <field name="content"><![CDATA[<p>Encuentro sincrónico con el docente.</p>]]></field>
 <field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>HTML5 semántico</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Maquetar la página de una tienda de barrio con etiquetas semánticas y validarla en W3C. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
 </record>
-<record id="course_frontend_s1_l4" model="campus.lesson">
+<record id="course_frontend_s1_l4" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s1"/><field name="sequence">4</field>
 <field name="name">Sesión presencial asistida por IA</field>
 <field name="lesson_type">sesion_presencial</field>
@@ -197,7 +197,7 @@ Utiliza los aprendizajes adquiridos para responder la actividad evaluativa. | Id
 <field name="content"><![CDATA[<p>Laboratorio presencial con el agente IA como co-tutor.</p>]]></field>
 <field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>HTML5 semántico</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Maquetar la página de una tienda de barrio con etiquetas semánticas y validarla en W3C. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
 </record>
-<record id="course_frontend_s1_l5" model="campus.lesson">
+<record id="course_frontend_s1_l5" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s1"/><field name="sequence">5</field>
 <field name="name">Cuestionario del núcleo</field>
 <field name="lesson_type">quiz</field>
@@ -205,14 +205,14 @@ Utiliza los aprendizajes adquiridos para responder la actividad evaluativa. | Id
 <field name="summary">Cuestionario con calificación automática y retroalimentación por opción.</field>
 <field name="content"><![CDATA[<p>Cuestionario con calificación automática y retroalimentación por opción.</p>]]></field>
 </record>
-<record id="course_frontend_s2" model="campus.section">
+<record id="course_frontend_s2" model="campus.section" forcecreate="0">
 <field name="course_id" ref="course_frontend"/><field name="sequence">2</field>
 <field name="name">Núcleo 2 – CSS3 y diseño responsivo</field>
 <field name="objective">Construir estructuras web semánticas con CSS3 y diseño responsivo.</field>
 <field name="date_start" eval="(DateTime.today() + relativedelta(days=17)).strftime('%Y-%m-%d')"/>
 <field name="date_end" eval="(DateTime.today() + relativedelta(days=28)).strftime('%Y-%m-%d')"/>
 </record>
-<record id="course_frontend_s2_l0" model="campus.lesson">
+<record id="course_frontend_s2_l0" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s2"/><field name="sequence">0</field>
 <field name="name">Lectura: CSS3 y diseño responsivo</field>
 <field name="lesson_type">lectura</field>
@@ -239,7 +239,7 @@ Marcotte, E. (2024). Responsive Web Design: patrones y principios. A Book Apart.
 
 Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. https://www.kranio.io/blog/introduccion-a-css-parte-2-flexbox-grid-layout-y-media-queries-para-profesionales-del-diseno-web</p>]]></field>
 </record>
-<record id="course_frontend_s2_l1" model="campus.lesson">
+<record id="course_frontend_s2_l1" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s2"/><field name="sequence">1</field>
 <field name="name">Presentación interactiva</field>
 <field name="lesson_type">presentacion</field>
@@ -247,7 +247,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Recorrido visual por los conceptos clave del núcleo.</field>
 <field name="content"><![CDATA[<p>Recorrido visual por los conceptos clave del núcleo.</p>]]></field>
 </record>
-<record id="course_frontend_s2_l2" model="campus.lesson">
+<record id="course_frontend_s2_l2" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s2"/><field name="sequence">2</field>
 <field name="name">Infografía del núcleo</field>
 <field name="lesson_type">infografia</field>
@@ -255,7 +255,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Síntesis gráfica del núcleo.</field>
 <field name="content"><![CDATA[<p>Síntesis gráfica del núcleo.</p>]]></field>
 </record>
-<record id="course_frontend_s2_l3" model="campus.lesson">
+<record id="course_frontend_s2_l3" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s2"/><field name="sequence">3</field>
 <field name="name">Sesión sincrónica virtual</field>
 <field name="lesson_type">sesion_virtual</field>
@@ -266,7 +266,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="content"><![CDATA[<p>Encuentro sincrónico con el docente.</p>]]></field>
 <field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>CSS3 y media queries</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Hacer responsiva la página con media queries y unidades relativas. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
 </record>
-<record id="course_frontend_s2_l4" model="campus.lesson">
+<record id="course_frontend_s2_l4" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s2"/><field name="sequence">4</field>
 <field name="name">Sesión presencial asistida por IA</field>
 <field name="lesson_type">sesion_presencial</field>
@@ -277,7 +277,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="content"><![CDATA[<p>Laboratorio presencial con el agente IA como co-tutor.</p>]]></field>
 <field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>CSS3 y media queries</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Hacer responsiva la página con media queries y unidades relativas. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
 </record>
-<record id="course_frontend_s2_l5" model="campus.lesson">
+<record id="course_frontend_s2_l5" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s2"/><field name="sequence">5</field>
 <field name="name">Cuestionario del núcleo</field>
 <field name="lesson_type">quiz</field>
@@ -285,14 +285,14 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Cuestionario con calificación automática y retroalimentación por opción.</field>
 <field name="content"><![CDATA[<p>Cuestionario con calificación automática y retroalimentación por opción.</p>]]></field>
 </record>
-<record id="course_frontend_s3" model="campus.section">
+<record id="course_frontend_s3" model="campus.section" forcecreate="0">
 <field name="course_id" ref="course_frontend"/><field name="sequence">3</field>
 <field name="name">Núcleo 3 – JavaScript, Flexbox y Grid</field>
 <field name="objective">Implementar lógica e interactividad del lado del cliente con JavaScript, Flexbox y Grid.</field>
 <field name="date_start" eval="(DateTime.today() + relativedelta(days=29)).strftime('%Y-%m-%d')"/>
 <field name="date_end" eval="(DateTime.today() + relativedelta(days=40)).strftime('%Y-%m-%d')"/>
 </record>
-<record id="course_frontend_s3_l0" model="campus.lesson">
+<record id="course_frontend_s3_l0" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s3"/><field name="sequence">0</field>
 <field name="name">Lectura: JavaScript e interactividad</field>
 <field name="lesson_type">lectura</field>
@@ -300,7 +300,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Lectura de apropiación de conceptos.</field>
 <field name="content"><![CDATA[<h4>JavaScript en el navegador</h4><p>Variables con <code>let</code> y <code>const</code>, tipos primitivos, operadores y comparación estricta (<code>===</code>). Control de flujo con <code>if/else</code>, <code>switch</code>, <code>for</code>, <code>while</code> y métodos de arreglos (<code>map, filter, reduce</code>).</p><h4>Funciones y DOM</h4><ul><li>Declaraciones, expresiones y funciones flecha; parámetros por defecto; ámbito y closures.</li><li><code>document.querySelector</code>, <code>addEventListener</code>, creación y modificación de nodos.</li><li>Maquetación con Flexbox y Grid controlada desde clases CSS.</li></ul><h4>Buenas prácticas</h4><p>Separar estructura, estilo y comportamiento; evitar variables globales; usar la consola y el depurador.</p>]]></field>
 </record>
-<record id="course_frontend_s3_l1" model="campus.lesson">
+<record id="course_frontend_s3_l1" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s3"/><field name="sequence">1</field>
 <field name="name">Presentación interactiva</field>
 <field name="lesson_type">presentacion</field>
@@ -308,7 +308,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Recorrido visual por los conceptos clave del núcleo.</field>
 <field name="content"><![CDATA[<p>Recorrido visual por los conceptos clave del núcleo.</p>]]></field>
 </record>
-<record id="course_frontend_s3_l2" model="campus.lesson">
+<record id="course_frontend_s3_l2" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s3"/><field name="sequence">2</field>
 <field name="name">Infografía del núcleo</field>
 <field name="lesson_type">infografia</field>
@@ -316,7 +316,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Síntesis gráfica del núcleo.</field>
 <field name="content"><![CDATA[<p>Síntesis gráfica del núcleo.</p>]]></field>
 </record>
-<record id="course_frontend_s3_l3" model="campus.lesson">
+<record id="course_frontend_s3_l3" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s3"/><field name="sequence">3</field>
 <field name="name">Caso de estudio integrador N3</field>
 <field name="lesson_type">caso</field>
@@ -324,7 +324,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Proyecto con evaluación por rúbrica.</field>
 <field name="content"><![CDATA[<table class="table"><tr><td>Nombre del curso</td><td>Desarrollo de Aplicaciones Web (Front-End) y Multimedia</td></tr><tr><td>Nombre del caso de estudio</td><td>Rediseño web responsivo para una microempresa digital</td></tr><tr><td>Tiempo sugerido para su realización (en horas)</td><td>6 horas</td></tr></table><h4>Objetivo:</h4><p>Analizar una situación real relacionada con un sitio web que presenta limitaciones en su interacción con los usuarios, con el fin de que el estudiante identifique las causas del problema y proponga una solución técnica básica aplicando los fundamentos de JavaScript vistos en el Núcleo 3, especialmente el uso de variables, estructuras de control, eventos, manipulación básica del DOM e integración de JavaScript con HTML y CSS.</p><h4>Descripción de la actividad (caso):</h4><p>En el año 2025, en la ciudad de Bogotá, Laura Martínez es una emprendedora de 34 años y propietaria de una microempresa dedicada a la venta de productos ecológicos a través de Internet.</p><p>Aunque su sitio web presenta una apariencia visual adecuada, Laura ha identificado varios problemas relacionados con la interacción de los usuarios. Actualmente, los visitantes no reciben mensajes de confirmación cuando realizan acciones importantes, los formularios permiten enviar información incompleta, no existe validación de datos y el contenido mostrado en pantalla permanece estático independientemente de las acciones realizadas por los usuarios.</p><p>Estas dificultades generan una experiencia de usuario poco dinámica, aumentan los errores en el diligenciamiento de formularios y afectan la confianza de los clientes durante el proceso de navegación y compra.</p><p>Ante esta situación, Laura decide contratar un desarrollador Front-End junior, rol que asumirá el estudiante en este caso de estudio.</p><p>Como futuro tecnólogo en desarrollo de software, el estudiante deberá analizar la situación, identificar los problemas principales relacionados con la interacción del usuario y proponer una solución técnica básica aplicando los conocimientos adquiridos sobre JavaScript.</p><h4>Instrucciones para desarrollar la actividad:</h4><p>Esta actividad es de carácter individual y debe realizarse con base en los aprendizajes logrados hasta este núcleo.</p><p>1. Lea atentamente el caso de estudio presentado, comprendiendo el contexto, el perfil del personaje principal y la situación problemática relacionada con el diseño del sitio web.</p><p>2. Analice los problemas identificados en el caso, teniendo en cuenta aspectos básicos de diseño web como la correcta visualización de contenidos, la adaptación a diferentes tamaños de pantalla y la experiencia del usuario al navegar por el sitio.</p><p>3. Con base en los temas estudiados (Fundamentos de JavaScript):</p><ul><li>Variables y tipos de datos.</li><li>Operadores y estructuras de control.</li><li>Eventos.</li><li>Manipulación básica del DOM.</li><li>Integración de JavaScript con HTML y CSS.</li></ul><p>Identifique cuáles de estos conceptos pueden aplicarse para solucionar los problemas descritos en el caso.</p><p>4. Elabore un documento de argumentación técnica en formato Word y posteriormente convertido a PDF, con una extensión mínima de 3 páginas y máxima de 5 páginas (sin contar portada), que contenga la siguiente estructura:</p><p>a) Portada: nombre del estudiante, código, nombre del curso, nombre del caso, fecha.</p><p>b) Identificación del problema: descripción clara y puntual del problema principal del sitio web y de sus causas.</p><h4>c) Análisis de errores de interacción y funcionamiento. Relación de los problemas detectados en el sitio web, tales como:</h4><ul><li>Ausencia de validación de formularios.</li><li>Falta de retroalimentación al usuario.</li><li>Contenido estático.</li><li>Ausencia de eventos interactivos.</li><li>Problemas en la experiencia de usuario derivados de la falta de programación del lado del cliente.</li></ul><h4>d) Propuesta técnica de solución</h4><p>Explicación clara de cómo se aplicarían los conceptos de JavaScript para corregir los problemas identificados.</p><p>No se requiere desarrollar una aplicación completa, pero sí incluir fragmentos de código ilustrativos o pseudocódigo que demuestren la aplicación de:</p><ul><li>Variables.</li><li>Condicionales.</li><li>Ciclos.</li><li>Eventos.</li><li>Manipulación del DOM.</li><li>Integración entre HTML, CSS y JavaScript.</li></ul><p>Ejemplo:</p><p>JavaScript</p><p>const nombre = document.getElementById(&quot;nombre&quot;).value;</p><p>if(nombre === &quot;&quot;){</p><p>alert(&quot;Por favor ingrese su nombre&quot;);</p><p>}</p><p>Mostrar más líneas</p><h4>e) Justificación técnica (mínimo 300 palabras)</h4><p>Explique por qué la solución propuesta es adecuada para resolver el problema presentado, mencionando al menos los siguientes componentes:</p><ul><li>Variables.</li><li>Estructuras de control.</li><li>Eventos.</li><li>Manipulación básica del DOM.</li><li>Integración de JavaScript con HTML y CSS.</li></ul><p>Utilice un lenguaje técnico sencillo y acorde con su nivel de formación.</p><p>f) Conclusiones: redacte mínimo 3 conclusiones dirigidas al docente y a la cliente (Laura Martínez), en las que demuestre comprensión del problema, del proceso de análisis realizado y de la solución propuesta.</p><p>5. Suba el documento final en formato PDF a la plataforma virtual, en el espacio habilitado para la entrega de la actividad de aprendizaje del Núcleo 3.</p><p>------------------------------------------------------------------------------------------------------------------------</p><h4>Solución del caso (esta sección será visible solo para el tutor):</h4><ul><li>El estudiante debe identificar que el problema principal del sitio web está relacionado con la ausencia de funcionalidades interactivas desarrolladas con JavaScript.</li><li>Debe reconocer la falta de validaciones en formularios y la ausencia de retroalimentación al usuario.</li><li>Debe proponer el uso de variables para almacenar información ingresada por los usuarios.</li><li>Debe plantear el uso de estructuras condicionales para validar datos y controlar diferentes situaciones dentro de la página.</li><li>Debe proponer la implementación de eventos para responder a acciones del usuario como clics, envíos de formularios o interacciones con botones.</li><li>Debe sugerir técnicas básicas de manipulación del DOM para actualizar contenido dinámicamente.</li><li>Debe demostrar comprensión de la integración entre HTML, CSS y JavaScript.</li><li>No se espera código avanzado, sino una propuesta clara, lógica y coherente con el nivel de formación del estudiante.</li></ul><p>-----------------------------------------------------------------------------------------------------------</p><h4>Criterios de evaluación:</h4><ul><li>Identificación y análisis del problema: el estudiante identifica correctamente los problemas de interacción y funcionamiento del sitio web y realiza un análisis lógico de sus causas.</li><li>Aplicación de conceptos de JavaScript: el estudiante aplica adecuadamente variables, estructuras de control, eventos y manipulación del DOM dentro de su propuesta de solución.</li><li>Viabilidad y coherencia de la propuesta: la solución planteada resulta pertinente para resolver los problemas identificados y es coherente con el nivel de formación del estudiante.</li><li>Presentación, justificación y conclusiones: el documento cumple con la estructura solicitada, presenta una justificación técnica clara y conclusiones pertinentes.</li></ul><h4>RÚBRICA DE EVALUACIÓN:</h4><table class="table"><tr><td>CRITERIOS</td><td>INSUFICIENTE (0)</td><td>ACEPTABLE (3)</td><td>EXCELENTE (5)</td></tr><tr><td>Identificación y análisis del problema</td><td>No identifica los problemas del caso o presenta un análisis incorrecto.</td><td>Identifica parcialmente los problemas y realiza un análisis básico.</td><td>Identifica claramente los problemas y realiza un análisis completo y coherente.</td></tr><tr><td>Identificación y análisis del problema</td><td>0</td><td>0,75</td><td>1,25</td></tr><tr><td>Aplicación de conceptos de JavaScript</td><td>No aplica variables, estructuras de control, eventos ni manipulación del DOM.</td><td>Aplica algunos conceptos de JavaScript, aunque con limitaciones o imprecisiones.</td><td>Aplica de manera adecuada variables, estructuras de control, eventos y manipulación del DOM en la propuesta.</td></tr><tr><td>Aplicación de conceptos de JavaScript</td><td>0</td><td>0,75</td><td>1,25</td></tr><tr><td>Viabilidad y coherencia de la propuesta</td><td>La solución planteada no responde a la problemática presentada.</td><td>La propuesta responde parcialmente al problema identificado.</td><td>La propuesta es totalmente coherente, viable y responde adecuadamente a la problemática.</td></tr><tr><td>Viabilidad y coherencia de la propuesta</td><td>0</td><td>0,75</td><td>1,25</td></tr><tr><td>Presentación, justificación y conclusiones</td><td>No cumple con la estructura solicitada o presenta información desorganizada.</td><td>Cumple parcialmente con la estructura y presenta algunas inconsistencias.</td><td>Cumple completamente con la estructura, presenta una justificación sólida y conclusiones claras.</td></tr><tr><td>Presentación, justificación y conclusiones</td><td>0</td><td>0,75</td><td>1,25</td></tr><tr><td></td><td></td><td></td><td></td></tr></table>]]></field>
 </record>
-<record id="course_frontend_s3_l4" model="campus.lesson">
+<record id="course_frontend_s3_l4" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s3"/><field name="sequence">4</field>
 <field name="name">Sesión sincrónica virtual</field>
 <field name="lesson_type">sesion_virtual</field>
@@ -335,7 +335,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="content"><![CDATA[<p>Encuentro sincrónico con el docente.</p>]]></field>
 <field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>JavaScript y DOM</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Agregar un carrito de compras interactivo manipulando el DOM. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
 </record>
-<record id="course_frontend_s3_l5" model="campus.lesson">
+<record id="course_frontend_s3_l5" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s3"/><field name="sequence">5</field>
 <field name="name">Sesión presencial asistida por IA</field>
 <field name="lesson_type">sesion_presencial</field>
@@ -346,7 +346,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="content"><![CDATA[<p>Laboratorio presencial con el agente IA como co-tutor.</p>]]></field>
 <field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>JavaScript y DOM</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Agregar un carrito de compras interactivo manipulando el DOM. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
 </record>
-<record id="course_frontend_s3_l6" model="campus.lesson">
+<record id="course_frontend_s3_l6" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s3"/><field name="sequence">6</field>
 <field name="name">Cuestionario del núcleo</field>
 <field name="lesson_type">quiz</field>
@@ -354,14 +354,14 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Cuestionario con calificación automática y retroalimentación por opción.</field>
 <field name="content"><![CDATA[<p>Cuestionario con calificación automática y retroalimentación por opción.</p>]]></field>
 </record>
-<record id="course_frontend_s4" model="campus.section">
+<record id="course_frontend_s4" model="campus.section" forcecreate="0">
 <field name="course_id" ref="course_frontend"/><field name="sequence">4</field>
 <field name="name">Núcleo 4 – Formularios, validaciones y multimedia</field>
 <field name="objective">Crear formularios con validación del lado del cliente e integrar contenidos multimedia.</field>
 <field name="date_start" eval="(DateTime.today() + relativedelta(days=41)).strftime('%Y-%m-%d')"/>
 <field name="date_end" eval="(DateTime.today() + relativedelta(days=52)).strftime('%Y-%m-%d')"/>
 </record>
-<record id="course_frontend_s4_l0" model="campus.lesson">
+<record id="course_frontend_s4_l0" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s4"/><field name="sequence">0</field>
 <field name="name">Lectura: Formularios, validaciones y multimedia</field>
 <field name="lesson_type">lectura</field>
@@ -369,7 +369,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Lectura de apropiación de conceptos.</field>
 <field name="content"><![CDATA[<table class="table"><tr><td>Nombre profesor (a)</td><td>Desarrollo de Aplicaciones Web (Front-End) y Multimedia</td></tr><tr><td>Núcleo de aprendizaje</td><td>NÚCLEO 4</td></tr><tr><td>Créditos académicos</td><td>3</td></tr><tr><td>Tiempo aproximado de lectura</td><td>14–16 páginas de lectura (máximo permitido para 3 créditos)</td></tr></table><h4>CONTENIDOS:</h4><p>A continuación, se presenta la relación de páginas construidas por el experto de contenidos para la consulta del estudiante frente a los créditos de una asignatura.</p><table class="table"><tr><td>1 crédito</td><td>2 créditos</td><td>3 créditos</td><td>4 créditos</td></tr><tr><td>Máximo entre 6 y 8 páginas de lectura.</td><td>Máximo entre 10 y 12 páginas de lectura.</td><td>Máximo entre 14 y 16 páginas de lectura.</td><td>Máximo entre 18 y 20 páginas de lectura.</td></tr></table><p>Los siguientes son algunos aspectos para tener en cuenta en esta sección:</p><ul><li>Se sugiere ser muy creativo en la presentación de los contenidos, no hacerlo solo a través de párrafos secuenciales, incluir imágenes, mapas conceptuales, cuadros sinópticos, línea de tiempo, flujogramas, cuadros comparativos, entro otros.</li><li>Presentar los contenidos a través de experiencias, ejemplos, estudios de caso, historias, cuadros comparativos e imágenes que complementen o profundicen conceptos.</li><li>Para abordar los contenidos es importante que piense en función de los procesos de enseñanza que ha desarrollado presencial o virtualmente, esto con el fin de encontrar un lenguaje y desarrollar los contenidos basados en una estrategia pedagógica.</li><li>Es imprescindible respetar los derechos de autor, se puede señalar que alguien incurre en plagio cuando se presenta alguna de las siguientes conductas:</li><li>Presenta como propios planteamientos ajenos.</li><li>Altera o modifica el texto haciendo que parezca propio, manteniendo su planteamiento original.</li><li>Hace una copia textual de un escrito ajeno sin la debida referencia.</li><li>Se permite el uso de citas bibliográficas para complementar los contenidos, hasta en un 40 % del total del contenido.  Se espera que la citación de párrafos de otras fuentes se reserve para casos en los que se aporte de manera significativa el desarrollo del tema. Los autores y obras citadas como referencia deben listarse en la bibliografía, al final del documento.</li></ul><h4>Propósito de la lectura</h4><p>Apropiar conceptos y prácticas clave sobre formularios web, validaciones del lado del cliente, accesibilidad, contenidos multimedia e introducción conceptual a frameworks Front-End, articulando HTML5, CSS3 y JavaScript mediante ejemplos, casos y representaciones visuales.</p><h4>Estrategia pedagógica</h4><p>Aprendizaje activo con ejemplos guiados, estudios de caso, mapas conceptuales, cuadros comparativos, flujogramas y líneas de tiempo, priorizando la comprensión aplicada y la reflexión crítica.</p><h4>Estructura del contenido</h4><h4>1. Introducción contextual (1 página)</h4><p>Imagine que usted, como usuario, ingresa a una página web para inscribirse a un curso, comprar un producto o solicitar un servicio. En algún momento del proceso debe completar un formulario: escribir su nombre, un correo electrónico, un número de documento, tal vez una contraseña. Si el formulario permite enviar campos vacíos, acepta un correo mal escrito o no le indica con claridad qué información falta, la experiencia se vuelve frustrante y puede llevarlo a abandonar el proceso.</p><p>Este escenario, aparentemente simple, es el punto de partida de esta lectura. Detrás de cada formulario bien construido hay decisiones técnicas y pedagógicas: qué etiquetas semánticas usar, cómo validar la información antes de enviarla al servidor, cómo lograr que cualquier persona —incluidas quienes usan lectores de pantalla o navegan solo con teclado— pueda completarlo sin barreras, y cómo enriquecer la experiencia con contenido multimedia accesible.</p><h4>Objetivos de aprendizaje</h4><p>Al finalizar esta lectura, usted estará en capacidad de:</p><ul><li>Recordar la sintaxis y la función de las principales etiquetas semánticas de HTML5 usadas en formularios.</li><li>Comprender el propósito y el funcionamiento de la validación del lado del cliente y su relación con la validación del lado del servidor.</li><li>Aplicar atributos de validación nativa de HTML5 y funciones de validación en JavaScript en casos concretos.</li><li>Analizar las ventajas, limitaciones y complementariedad entre la validación nativa y la validación con JavaScript.</li><li>Evaluar el nivel de accesibilidad y de calidad multimedia de un formulario o de una página web, a partir de criterios técnicos como las WCAG 2.2.</li><li>Crear una propuesta de formulario funcional, validado y accesible que integre buenas prácticas de experiencia de usuario (UX).</li></ul><h4>Preguntas orientadoras</h4><ul><li>¿Qué información necesita un formulario para considerarse completo y confiable?</li><li>¿Qué sucede si la validación solo se realiza en el navegador y nunca en el servidor?</li><li>¿Cómo se ve, se escucha y se navega un formulario cuando quien lo usa no puede ver la pantalla o no puede utilizar el mouse?</li><li>¿Qué papel cumplen el audio, el video y los subtítulos en un contenido web accesible?</li></ul><h4>2. Fundamentos de formularios HTML5 (3–4 páginas)</h4><h4>2.1 ¿Qué es un formulario y para qué sirve?</h4><p>Un formulario web es la estructura que permite capturar información de una persona usuaria y enviarla a un servidor para su procesamiento. Es, junto con los enlaces, uno de los mecanismos básicos de interacción entre las personas y las aplicaciones web: iniciar sesión, realizar una compra, dejar un comentario o registrar una inscripción son, en esencia, formularios.</p><p>Antes de programar cualquier validación, es necesario construir un formulario bien estructurado desde el HTML, usando etiquetas semánticas que describan con precisión la función de cada elemento.</p><h4>2.2 Etiquetas semánticas principales</h4><p>Representación sugerida: Mapa conceptual de etiquetas semánticas</p><ul><li>&lt;form&gt;: contenedor principal del formulario; agrupa todos los campos y define hacia dónde y cómo se envía la información.</li><li>&lt;label&gt;: describe el propósito de un campo. Vincularlo correctamente mediante el atributo for es indispensable para la accesibilidad, porque los lectores de pantalla anuncian la etiqueta cuando el campo recibe el foco.</li><li>&lt;input&gt;: campo de entrada de datos; su comportamiento cambia según el atributo type (text, email, password, checkbox, radio, date, entre otros).</li><li>&lt;textarea&gt;: campo de texto de varias líneas, útil para comentarios, mensajes o descripciones extensas.</li><li>&lt;fieldset&gt; y &lt;legend&gt;: agrupan campos relacionados (por ejemplo, los datos de contacto) bajo un título común, lo que mejora la organización visual y la comprensión para las tecnologías de asistencia.</li></ul><p>Idea clave: un formulario semánticamente correcto ya resuelve buena parte de los requisitos de accesibilidad, incluso antes de aplicar CSS o JavaScript.</p><h4>2.3 Tipos de campos y casos de uso</h4><p>Representación sugerida: Cuadro sinóptico de tipos de campos vs. casos de uso</p><ul><li>text: nombres, direcciones, campos de texto corto.</li><li>email: correos electrónicos, con validación de formato incorporada.</li><li>password: contraseñas; oculta el texto ingresado.</li><li>number: cantidades, edades, valores numéricos.</li><li>date: fechas de nacimiento, de entrega o de reserva.</li><li>checkbox: selección múltiple (aceptar términos, marcar varias opciones).</li><li>radio: selección única entre varias opciones excluyentes.</li><li>select / option: listas desplegables cuando las opciones son numerosas o deben limitarse a un conjunto cerrado.</li><li>textarea: mensajes, comentarios o descripciones largas.</li></ul><p>Elegir el tipo de campo adecuado no es un detalle estético: cada tipo activa comportamientos distintos en el navegador (teclados específicos en dispositivos móviles, validación automática, controles de incremento, calendarios) que facilitan la tarea de quien lo usa.</p><h4>2.4 Ejemplo práctico: formulario básico comentado</h4><p>A continuación, se presenta un formulario mínimo de contacto que integra las etiquetas descritas:</p><p>&lt;form action=&quot;/enviar&quot; method=&quot;post&quot;&gt;</p><p>&lt;fieldset&gt;</p><p>&lt;legend&gt;Datos de contacto&lt;/legend&gt;</p><p>&lt;label for=&quot;nombre&quot;&gt;Nombre completo&lt;/label&gt;</p><p>&lt;input type=&quot;text&quot; id=&quot;nombre&quot; name=&quot;nombre&quot; required&gt;</p><p>&lt;label for=&quot;correo&quot;&gt;Correo electrónico&lt;/label&gt;</p><p>&lt;input type=&quot;email&quot; id=&quot;correo&quot; name=&quot;correo&quot; required&gt;</p><p>&lt;label for=&quot;mensaje&quot;&gt;Mensaje&lt;/label&gt;</p><p>&lt;textarea id=&quot;mensaje&quot; name=&quot;mensaje&quot; rows=&quot;4&quot;&gt;&lt;/textarea&gt;</p><p>&lt;/fieldset&gt;</p><p>&lt;button type=&quot;submit&quot;&gt;Enviar&lt;/button&gt;</p><p>&lt;/form&gt;</p><p>Observe que cada input está asociado a un label mediante los atributos for/id, que el fieldset agrupa los campos bajo un propósito común, y que el atributo required ya activa una validación nativa, tema que se desarrolla en el siguiente apartado.</p><h4>3. Validaciones del lado del cliente (3–4 páginas)</h4><h4>3.1 ¿Qué es la validación del lado del cliente?</h4><p>La validación del lado del cliente es el conjunto de comprobaciones que se realizan en el navegador antes de que la información ingresada por el usuario sea enviada al servidor. Su propósito principal es prevenir errores, mejorar la experiencia de usuario y reducir solicitudes innecesarias al backend.</p><p>Desde una perspectiva pedagógica, validar datos implica anticiparse a los errores más comunes del usuario y ofrecer retroalimentación clara y oportuna. Por ejemplo, evitar que un formulario se envíe vacío o con un correo electrónico mal escrito contribuye tanto a la usabilidad como a la calidad de la información recolectada.</p><p>Idea clave: la validación del lado del cliente no reemplaza la validación del lado del servidor; ambos enfoques se complementan.</p><h4>3.2 Flujo general de validación</h4><p>Representación sugerida: Flujograma del proceso de validación</p><ul><li>El usuario interactúa con el formulario (escribe, selecciona, envía).</li><li>El navegador evalúa las reglas de validación.</li><li>Se detectan errores o datos válidos.</li><li>El sistema muestra mensajes de retroalimentación.</li><li>Si todo es correcto, se permite el envío del formulario.</li></ul><p>Este flujo evidencia que la validación es un proceso dinámico y continuo, no un evento aislado al final del formulario.</p><h4>3.3 Validación nativa con HTML5</h4><p>HTML5 incorpora atributos y tipos de entrada que permiten validar datos sin escribir JavaScript adicional. Algunos de los más utilizados son:</p><ul><li>required: obliga a diligenciar el campo.</li></ul><p>required</p><ul><li>type=&quot;email&quot;, type=&quot;number&quot;, type=&quot;url&quot;: validan el formato de entrada.</li></ul><p>type=&quot;email&quot;</p><p>type=&quot;number&quot;</p><p>type=&quot;url&quot;</p><ul><li>min, max, minlength, maxlength: restringen valores permitidos.</li></ul><p>min</p><p>max</p><p>minlength</p><p>maxlength</p><ul><li>pattern: valida mediante expresiones regulares.</li></ul><p>pattern</p><p>Ejemplo pedagógico: Un campo de correo electrónico marcado como obligatorio muestra automáticamente un mensaje si el usuario intenta enviarlo vacío o con un formato incorrecto.</p><h4>Ventajas:</h4><ul><li>Implementación rápida.</li><li>Compatibilidad con navegadores modernos.</li><li>Mensajes automáticos.</li></ul><h4>Limitaciones:</h4><ul><li>Personalización limitada de mensajes.</li><li>Dependencia del idioma y estilo del navegador.</li></ul><h4>3.4 Validación con JavaScript</h4><p>JavaScript permite una validación más flexible y personalizada, adecuada para escenarios reales donde se requieren reglas complejas.</p><p>Entre sus posibilidades se incluyen:</p><ul><li>Validar campos en tiempo real.</li><li>Comparar valores entre campos (por ejemplo, contraseñas).</li><li>Generar mensajes de error personalizados y accesibles.</li><li>Controlar el envío del formulario mediante eventos.</li></ul><p>Caso práctico: Un formulario de registro que verifica:</p><ul><li>Que la contraseña tenga mínimo 8 caracteres.</li><li>Que incluya letras y números.</li><li>Que la confirmación coincida.</li></ul><p>Cuando alguna condición falla, el sistema presenta un mensaje claro indicando cómo corregir el error.</p><h4>3.5 Comparación: HTML5 vs. JavaScript</h4><p>Representación sugerida: Cuadro comparativo</p><ul><li>HTML5</li><li>Validación básica.</li><li>Menor complejidad.</li><li>Poca personalización.</li><li>JavaScript</li><li>Validación avanzada.</li><li>Mayor control y flexibilidad.</li><li>Mejora significativa en la experiencia de usuario.</li></ul><p>La elección no es excluyente: en prácticas profesionales se utilizan ambos enfoques de forma complementaria.</p><h4>3.6 Retroalimentación al usuario</h4><p>Una validación eficaz siempre debe ir acompañada de mensajes comprensibles y visibles. Esto implica:</p><ul><li>Indicar claramente qué campo presenta el error.</li><li>Explicar por qué el dato no es válido.</li><li>Sugerir cómo corregirlo.</li></ul><h4>Buenas prácticas:</h4><ul><li>Evitar mensajes genéricos como “Error en el formulario”.</li><li>Usar lenguaje sencillo y directo.</li><li>Mostrar los mensajes cerca del campo correspondiente.</li></ul><h4>3.7 Relación con la accesibilidad</h4><p>La validación también debe ser accesible. Esto significa que los mensajes de error deben poder ser interpretados por:</p><ul><li>Lectores de pantalla.</li><li>Usuarios que navegan solo con teclado.</li><li>Personas con dificultades cognitivas o visuales.</li></ul><p>Integrar accesibilidad en la validación refuerza el principio de diseño inclusivo y amplía el alcance de las aplicaciones web.</p><h4>3.8 Cierre del capítulo</h4><p>La validación del lado del cliente es un pilar del desarrollo Front-End moderno. Dominar sus principios permite crear formularios confiables, usables y accesibles, alineados con estándares web y expectativas reales de los usuarios.</p><p>Este conocimiento será clave para integrar formularios funcionales en proyectos веб más complejos y para comprender cómo los frameworks Front-End gestionan internamente estos procesos.</p><ul><li>Flujograma: captura → validación → retroalimentación → envío.</li><li>Cuadro comparativo: validación nativa HTML5 vs. validación con JavaScript.</li><li>Caso de estudio: errores frecuentes y mensajes accesibles.</li></ul><h4>4. Accesibilidad en formularios (2–3 páginas)</h4><h4>4.1 Historia breve: cuando un formulario es una barrera</h4><p>Camila es una usuaria que navega la web con un lector de pantalla, porque tiene baja visión. Cuando llega a un formulario de registro sin etiquetas asociadas a los campos, el lector de pantalla solo anuncia “campo de edición”, sin indicarle qué información debe ingresar en cada casilla. Camila debe adivinar, retroceder y probar varias veces antes de completar el registro, si es que logra hacerlo. Situaciones como esta explican por qué la accesibilidad no es un complemento opcional del desarrollo web, sino un requisito de diseño inclusivo.</p><h4>4.2 Principios WCAG 2.2 aplicados a formularios</h4><p>Representación sugerida: Checklist de principios WCAG 2.2</p><p>Las Pautas de Accesibilidad para el Contenido Web (WCAG 2.2) se organizan en cuatro principios, conocidos por el acrónimo POUR: Perceptible, Operable, Comprensible y Robusto. Aplicados a formularios, implican, entre otros aspectos:</p><h4>Perceptible</h4><ul><li>Todo campo (input) tiene un label visible y correctamente asociado.</li><li>Los mensajes de error no dependen únicamente del color (por ejemplo, se apoyan también en un ícono o en un texto, además del color rojo).</li></ul><h4>Operable</h4><ul><li>El formulario puede completarse y enviarse usando solo el teclado (tabulación, Enter, barra espaciadora).</li><li>El foco del teclado es visible en todo momento (contorno o borde perceptible).</li></ul><h4>Comprensible</h4><ul><li>Las instrucciones y los mensajes de error se redactan en lenguaje claro y específico.</li><li>Se anticipan errores comunes y se ofrecen sugerencias concretas para corregirlos.</li></ul><h4>Robusto</h4><ul><li>El formulario funciona correctamente en distintos navegadores y con tecnologías de asistencia (lectores de pantalla, software de reconocimiento de voz).</li></ul><h4>4.3 Buenas prácticas de contraste, foco y mensajes</h4><ul><li>Contraste: el texto y los elementos interactivos deben tener suficiente contraste frente al fondo (mínimo 4.5:1 para texto normal, según WCAG 2.2), de modo que sean legibles para personas con baja visión o daltonismo.</li><li>Foco visible: al navegar con la tecla Tab, cada campo debe mostrar con claridad que tiene el foco; eliminar el estilo por defecto del navegador (outline: none) sin reemplazarlo por una alternativa visible es un error frecuente que excluye a las personas que navegan con teclado.</li><li>Mensajes de error accesibles: se recomienda asociar el mensaje al campo correspondiente mediante atributos como aria-describedby, y usar aria-live para que los lectores de pantalla anuncien el error en el momento en que ocurre, sin que el usuario deba buscarlo.</li></ul><p>Idea clave: la accesibilidad y la validación no son procesos independientes; un formulario bien validado, pero inaccesible, sigue siendo un formulario excluyente.</p><h4>5. Contenidos multimedia en la web (2–3 páginas)</h4><h4>5.1 Línea de tiempo: evolución del audio y el video en HTML</h4><p>Representación sugerida: Línea de tiempo de la evolución del multimedia en HTML</p><p>Durante años, reproducir audio o video en una página web dependía de complementos externos como Flash o Silverlight, con los problemas de seguridad, rendimiento y accesibilidad que esto implicaba. La llegada de HTML5, hacia el año 2010, introdujo las etiquetas nativas &lt;audio&gt; y &lt;video&gt;, que permitieron incorporar contenido multimedia directamente en el navegador, sin necesidad de plugins adicionales. Desde entonces, estas etiquetas se han enriquecido con atributos de control, múltiples formatos de codificación y soporte para subtítulos y pistas de texto sincronizadas (WebVTT), consolidando un estándar abierto, accesible y compatible con dispositivos móviles.</p><h4>5.2 Formatos, compatibilidad y accesibilidad</h4><p>Representación sugerida: Cuadro comparativo de formatos multimedia</p><h4>Video</h4><ul><li>MP4 (H.264): mayor compatibilidad entre navegadores y dispositivos.</li><li>WebM: formato abierto y con buena compresión, con algunas limitaciones de soporte en navegadores antiguos.</li><li>Ogg: soporte limitado; uso poco frecuente en producción.</li></ul><h4>Audio</h4><ul><li>MP3: el más compatible; tamaño de archivo reducido.</li><li>WAV: alta calidad, pero archivos más pesados.</li><li>OGG/Opus: formato abierto y eficiente para transmisión en tiempo real.</li></ul><h4>Accesibilidad</h4><ul><li>Subtítulos (captions): benefician a personas sordas o con hipoacusia, y también a quienes ven el contenido en entornos sin sonido.</li><li>Transcripciones: permiten acceder al contenido mediante lectores de pantalla o de forma indexable por los buscadores.</li><li>Audiodescripción: narra los elementos visuales relevantes para personas con discapacidad visual.</li></ul><h4>5.3 Ejemplo: integración de audio y video con subtítulos</h4><p>&lt;video controls width=&quot;640&quot;&gt;</p><p>&lt;source src=&quot;clase-formularios.mp4&quot; type=&quot;video/mp4&quot;&gt;</p><p>&lt;source src=&quot;clase-formularios.webm&quot; type=&quot;video/webm&quot;&gt;</p><p>&lt;track kind=&quot;captions&quot; src=&quot;clase-formularios-es.vtt&quot; srclang=&quot;es&quot; label=&quot;Español&quot; default&gt;</p><p>Su navegador no soporta la reproducción de este video.</p><p>&lt;/video&gt;</p><p>&lt;audio controls&gt;</p><p>&lt;source src=&quot;podcast-accesibilidad.mp3&quot; type=&quot;audio/mpeg&quot;&gt;</p><p>Su navegador no soporta la reproducción de este audio.</p><p>&lt;/audio&gt;</p><p>Observe que el atributo controls habilita los controles de reproducción nativos del navegador (útiles para la operabilidad exigida por las WCAG), y que el elemento &lt;track&gt; agrega subtítulos sincronizados a partir de un archivo WebVTT. El texto alternativo dentro de las etiquetas se muestra únicamente si el navegador no puede reproducir ninguno de los formatos ofrecidos.</p><p>Idea clave: ofrecer varios formatos (source) y subtítulos no es redundancia técnica: es una estrategia de compatibilidad y de inclusión.</p><h4>6. Introducción conceptual a frameworks FrontEnd (1–2 páginas)</h4><h4>6.1 ¿Qué problema resuelven los frameworks FrontEnd?</h4><p>A medida que una aplicación web crece, escribir HTML, CSS y JavaScript “a mano” para cada formulario, cada validación y cada actualización de la interfaz se vuelve difícil de mantener: el código se repite, la sincronización entre lo que la persona usuaria ve y los datos reales es propensa a errores, y cualquier cambio pequeño obliga a revisar múltiples archivos.</p><p>Frameworks y librerías como React, Angular o Vue surgieron para resolver este problema mediante un enfoque basado en componentes: piezas reutilizables de interfaz (por ejemplo, un campo de formulario con su validación ya integrada) que se combinan para construir aplicaciones completas, manteniendo sincronizados los datos y lo que se muestra en pantalla.</p><p>Nota: el propósito de este apartado es que usted comprenda el problema que resuelven los frameworks y su relación con lo ya aprendido, no dominar la sintaxis de ninguno de ellos, tema que se profundiza en núcleos posteriores.</p><h4>6.2 Arquitectura básica de componentes</h4><p>Representación sugerida: Diagrama de arquitectura de componentes</p><p>En términos generales, una aplicación construida con un framework FrontEnd organiza la interfaz en componentes anidados: un componente “Formulario” puede contener varios componentes “Campo”, cada uno responsable de su propio estado (el valor ingresado, si tiene error, si ya fue validado) y de comunicar los cambios al componente que lo contiene. Este modelo puede resumirse así:</p><p>Aplicación</p><p>└── Componente Formulario</p><p>├── Componente Campo (nombre)</p><p>├── Componente Campo (correo)</p><p>└── Componente Botón enviar</p><p>Cada componente encapsula su HTML, su lógica (JavaScript) y, con frecuencia, sus propios estilos, lo que facilita reutilizar, probar y mantener el código.</p><h4>6.3 Relación con lo aprendido en HTML, CSS y JavaScript</h4><p>Los frameworks FrontEnd no reemplazan lo estudiado hasta ahora: lo organizan y lo potencian.</p><ul><li>Las etiquetas semánticas de HTML5 (form, label, input) siguen siendo la base sobre la que se construyen los componentes.</li><li>Las validaciones nativas y con JavaScript estudiadas en el apartado 3 se integran dentro de la lógica de cada componente, muchas veces con librerías especializadas que las simplifican.</li><li>Los principios de accesibilidad estudiados en el apartado 4 siguen aplicando: un componente mal construido puede ser tan inaccesible como una etiqueta HTML mal usada.</li></ul><p>Idea clave: dominar los fundamentos de HTML, CSS, JavaScript, validación y accesibilidad es la base indispensable para comprender, más adelante, cualquier framework FrontEnd.</p><h4>7. Cierre y reflexión (1 página)</h4><h4>7.1 Síntesis visual de aprendizajes</h4><p>Representación sugerida: Mapa o infografía de síntesis</p><p>A lo largo de esta lectura usted recorrió el camino completo de un formulario web: desde su construcción semántica con HTML5 (apartado 2), pasando por la validación del lado del cliente en sus variantes nativa y con JavaScript (apartado 3), la incorporación de criterios de accesibilidad (apartado 4) y de contenido multimedia (apartado 5), hasta una primera aproximación conceptual a los frameworks FrontEnd que organizan estos elementos a gran escala (apartado 6). En conjunto, estos temas conforman una visión integral de lo que implica construir una interfaz web funcional, usable, accesible e inclusiva.</p><h4>7.2 Preguntas de autoevaluación</h4><p>Le invitamos a responder, de manera personal, las siguientes preguntas antes de continuar con las demás actividades del núcleo:</p><ul><li>¿Podría explicar, con sus propias palabras, la diferencia entre la validación del lado del cliente y la validación del lado del servidor?</li><li>¿Qué atributos de HTML5 usaría para validar, sin JavaScript, un campo de correo electrónico obligatorio?</li><li>¿Cómo verificaría si un formulario es accesible para una persona que solo usa el teclado?</li><li>¿Qué formatos y elementos incluiría para que un video sea accesible a personas sordas?</li><li>¿Por qué podría ser útil organizar un formulario complejo en componentes reutilizables?</li></ul><h4>7.3 Conexión con el proyecto integrador</h4><p>Los conceptos desarrollados en esta lectura son la base técnica y conceptual que usted aplicará en el proyecto integrador del curso, en el cual deberá diseñar y construir un formulario web funcional, validado y accesible. Esta lectura no desarrolla el proyecto integrador, pero le proporciona los fundamentos indispensables para abordarlo con criterio técnico y pedagógico.</p><h4>BIBLIOGRAFÍA</h4><p>En esta sección debe listar todas las fuentes que citó en el desarrollo del contenido.</p><p>La bibliografía debe citarse en orden alfabético y de acuerdo con las normas APA, séptima edición. https://normas-apa.org/referencias/</p><ul><li>Duckett, J. (2011). HTML &amp; CSS: Design and Build Websites. Wiley.</li><li>Flanagan, D. (2020). JavaScript: The Definitive Guide (7th ed.). O’Reilly.</li><li>Keith, J. (2010). HTML5 for Web Designers. A Book Apart.</li><li>Pickering, H. (2016). Inclusive Design Patterns. Smashing Magazine.</li><li>Robbins, J. N. (2018). Learning Web Design (5th ed.). O’Reilly.</li><li>World Wide Web Consortium (W3C). (2023). WCAG 2.2. https://www.w3.org/TR/WCAG22/</li><li>Mozilla Developer Network. (s. f.). HTML Forms. https://developer.mozilla.org/es/docs/Learn/Forms</li></ul>]]></field>
 </record>
-<record id="course_frontend_s4_l1" model="campus.lesson">
+<record id="course_frontend_s4_l1" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s4"/><field name="sequence">1</field>
 <field name="name">Presentación interactiva</field>
 <field name="lesson_type">presentacion</field>
@@ -377,7 +377,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Recorrido visual por los conceptos clave del núcleo.</field>
 <field name="content"><![CDATA[<p>Recorrido visual por los conceptos clave del núcleo.</p>]]></field>
 </record>
-<record id="course_frontend_s4_l2" model="campus.lesson">
+<record id="course_frontend_s4_l2" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s4"/><field name="sequence">2</field>
 <field name="name">Infografía del núcleo</field>
 <field name="lesson_type">infografia</field>
@@ -385,7 +385,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Síntesis gráfica del núcleo.</field>
 <field name="content"><![CDATA[<p>Síntesis gráfica del núcleo.</p>]]></field>
 </record>
-<record id="course_frontend_s4_l3" model="campus.lesson">
+<record id="course_frontend_s4_l3" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s4"/><field name="sequence">3</field>
 <field name="name">Sesión sincrónica virtual</field>
 <field name="lesson_type">sesion_virtual</field>
@@ -396,7 +396,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="content"><![CDATA[<p>Encuentro sincrónico con el docente.</p>]]></field>
 <field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>formularios accesibles y validación</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Construir un formulario de registro con validación JS, audio y video accesibles. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
 </record>
-<record id="course_frontend_s4_l4" model="campus.lesson">
+<record id="course_frontend_s4_l4" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s4"/><field name="sequence">4</field>
 <field name="name">Sesión presencial asistida por IA</field>
 <field name="lesson_type">sesion_presencial</field>
@@ -407,7 +407,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="content"><![CDATA[<p>Laboratorio presencial con el agente IA como co-tutor.</p>]]></field>
 <field name="ai_guide"><![CDATA[<h4>Guion del agente IA</h4><ol><li><b>Apertura (10 min):</b> el agente lanza 3 preguntas diagnósticas sobre <i>formularios accesibles y validación</i> y agrupa a los estudiantes según sus respuestas.</li><li><b>Explicación guiada (25 min):</b> el docente explica; el agente genera ejemplos adaptados a cada grupo y responde dudas en tiempo real.</li><li><b>Reto práctico (45 min):</b> Construir un formulario de registro con validación JS, audio y video accesibles. El agente da pistas graduales (nunca la solución completa).</li><li><b>Mini-simulacro (15 min):</b> 5 preguntas tipo certificación con retroalimentación inmediata.</li><li><b>Cierre (10 min):</b> el agente resume errores frecuentes y deja tarea personalizada por estudiante.</li></ol>]]></field>
 </record>
-<record id="course_frontend_s4_l5" model="campus.lesson">
+<record id="course_frontend_s4_l5" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s4"/><field name="sequence">5</field>
 <field name="name">Cuestionario del núcleo</field>
 <field name="lesson_type">quiz</field>
@@ -415,14 +415,14 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Cuestionario con calificación automática y retroalimentación por opción.</field>
 <field name="content"><![CDATA[<p>Cuestionario con calificación automática y retroalimentación por opción.</p>]]></field>
 </record>
-<record id="course_frontend_s5" model="campus.section">
+<record id="course_frontend_s5" model="campus.section" forcecreate="0">
 <field name="course_id" ref="course_frontend"/><field name="sequence">5</field>
 <field name="name">Cierre</field>
 <field name="objective">Autoevaluación, diagnóstico final, simulacro completo y emisión de la microcredencial.</field>
 <field name="date_start" eval="(DateTime.today() + relativedelta(days=53)).strftime('%Y-%m-%d')"/>
 <field name="date_end" eval="(DateTime.today() + relativedelta(days=64)).strftime('%Y-%m-%d')"/>
 </record>
-<record id="course_frontend_s5_l0" model="campus.lesson">
+<record id="course_frontend_s5_l0" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s5"/><field name="sequence">0</field>
 <field name="name">Autoevaluación</field>
 <field name="lesson_type">actividad</field>
@@ -430,7 +430,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Reflexión guiada sobre tu proceso y logros.</field>
 <field name="content"><![CDATA[<p>Reflexión guiada sobre tu proceso y logros.</p>]]></field>
 </record>
-<record id="course_frontend_s5_l1" model="campus.lesson">
+<record id="course_frontend_s5_l1" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s5"/><field name="sequence">1</field>
 <field name="name">Simulacro completo de certificación</field>
 <field name="lesson_type">quiz</field>
@@ -438,7 +438,7 @@ Kranio. (2024). Flexbox, Grid layout y media queries: Guía avanzada de CSS. htt
 <field name="summary">Presenta el simulador en condiciones reales de tiempo. Necesitas el puntaje mínimo para tu microcredencial.</field>
 <field name="content"><![CDATA[<p>Presenta el simulador en condiciones reales de tiempo. Necesitas el puntaje mínimo para tu microcredencial.</p>]]></field>
 </record>
-<record id="course_frontend_s5_l2" model="campus.lesson">
+<record id="course_frontend_s5_l2" model="campus.lesson" forcecreate="0">
 <field name="section_id" ref="course_frontend_s5"/><field name="sequence">2</field>
 <field name="name">Sesión de cierre y plan de examen</field>
 <field name="lesson_type">sesion_virtual</field>

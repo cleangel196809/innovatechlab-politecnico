@@ -38,7 +38,8 @@
                 <div class="cp-ig-head">
                     <span class="cp-ig-badge">Infografía del núcleo</span>
                     <h3 t-esc="ig['title']"/>
-                    <p t-if="ig['objective']" t-esc="ig['objective']"/>
+                    <p t-if="ig['objective']" class="cp-ig-q" t-esc="ig['objective']"/>
+                    <p t-if="ig.get('intro')" t-esc="ig['intro']"/>
                     <p t-if="ig.get('key_fact')" class="cp-ig-key">💡 <t t-esc="ig['key_fact']"/></p>
                     <div class="cp-ig-meta">
                         <span>⏱️ <t t-esc="ig['minutes']"/> min de trabajo</span>
@@ -47,9 +48,12 @@
                 </div>
                 <div class="cp-ig-grid" t-if="ig['points']">
                     <div t-foreach="ig['points']" t-as="p" class="cp-ig-point">
-                        <span class="cp-ig-num" t-esc="p_index + 1"/>
-                        <h4 t-esc="p['title']"/>
-                        <p t-if="p['text']" t-esc="p['text']"/>
+                        <div class="cp-ig-illu" t-out="lesson.term_illustration(p)"/>
+                        <div>
+                            <span class="cp-ig-num" t-esc="p_index + 1"/>
+                            <h4 t-esc="p['title']"/>
+                            <p t-if="p['text']" t-esc="p['text']"/>
+                        </div>
                     </div>
                 </div>
                 <div class="cp-ig-route" t-if="ig['route']">
@@ -72,29 +76,108 @@
 
         <t t-elif="lt in ('video', 'presentacion')">
             <t t-set="slides" t-value="lesson.slides()"/>
-            <div class="cp-deck" t-att-data-narrate="'1' if lt == 'video' else None">
+            <t t-set="sm" t-value="lesson.slide_meta()"/>
+            <t t-set="nsl" t-value="len(slides)"/>
+            <div class="cp-deck cp-deck-pi" t-att-data-mode="lt" t-att-data-voice="'/campus/leccion/%s/voz/' % lesson.id">
                 <div class="cp-deck-stage">
-                    <section t-foreach="slides" t-as="sl" t-attf-class="cp-slide #{'active' if sl_first else ''}"
-                             t-att-data-say="lesson.narration(sl)">
-                        <small class="cp-slide-num"><t t-esc="sl_index + 1"/> / <t t-esc="len(slides)"/></small>
-                        <h3 t-esc="sl['title']"/>
-                        <p t-if="sl['lead']" class="cp-slide-lead" t-esc="sl['lead']"/>
-                        <ul t-if="sl['points']"><li t-foreach="sl['points']" t-as="pt" t-esc="pt"/></ul>
+                    <section t-foreach="slides" t-as="sl" t-attf-class="cp-slide cp-l-#{sl['layout']} #{'active' if sl_first else ''}"
+                             t-att-data-say="lesson.narration(sl, sl_index, nsl)">
+                        <t t-if="sl['layout'] == 'portada'">
+                            <div class="cp-sl-cover">
+                                <p class="cp-sl-kicker" t-esc="sm['nucleo_label']"/>
+                                <h3 t-esc="sl['title']"/>
+                                <span class="cp-sl-rule"/>
+                                <p class="cp-sl-sub" t-esc="sl['subtitle'] or sm['section']"/>
+                                <p class="cp-sl-meta"><t t-esc="sm['course']"/><br/><t t-esc="sm['teacher']"/></p>
+                                <p t-if="sl['points']" class="cp-sl-goal">Meta: <t t-esc="sl['points'][0]"/></p>
+                                <img src="/campus_pi/static/src/img/logo_pi_blanco.png" alt="Politécnico Internacional" class="cp-sl-logo-big"/>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <header class="cp-sl-top">
+                                <img src="/campus_pi/static/src/img/logo_pi_blanco.png" alt="Politécnico Internacional"/>
+                                <div><t t-esc="sm['course']"/> · <b t-esc="sm['nucleo_label']"/><br/><t t-esc="sm['section']"/></div>
+                            </header>
+                            <div class="cp-sl-body">
+                                <h3 t-esc="sl['title']"/>
+                                <p t-if="sl['subtitle']" class="cp-sl-subtitle" t-esc="sl['subtitle']"/>
+                                <t t-if="sl['layout'] == 'codigo'">
+                                    <div t-attf-class="cp-sl-split #{'' if sl['points'] else 'cp-sl-full'}">
+                                        <ul t-if="sl['points']" class="cp-sl-cards"><li t-foreach="sl['points'][:4]" t-as="pt" t-esc="pt"/></ul>
+                                        <pre class="cp-sl-code"><code t-esc="sl['code']"/></pre>
+                                    </div>
+                                </t>
+                                <t t-elif="sl['layout'] == 'tabla'">
+                                    <div class="cp-sl-tablewrap">
+                                        <table class="cp-sl-table">
+                                            <tr><th t-foreach="sl['table']['headers']" t-as="h" t-esc="h"/></tr>
+                                            <tr t-foreach="sl['table']['rows']" t-as="r"><td t-foreach="r" t-as="c" t-esc="c"/></tr>
+                                        </table>
+                                    </div>
+                                </t>
+                                <t t-elif="sl['layout'] == 'proceso'">
+                                    <ol class="cp-sl-steps"><li t-foreach="sl['points']" t-as="pt"><span t-esc="pt_index + 1"/><p t-esc="pt"/></li></ol>
+                                </t>
+                                <t t-elif="sl['layout'] == 'comparacion'">
+                                    <t t-set="half" t-value="(len(sl['points']) + 1) // 2"/>
+                                    <div class="cp-sl-compare">
+                                        <ul class="cp-sl-cards cp-good"><li t-foreach="sl['points'][:half]" t-as="pt" t-esc="pt"/></ul>
+                                        <ul class="cp-sl-cards cp-bad"><li t-foreach="sl['points'][half:]" t-as="pt" t-esc="pt"/></ul>
+                                    </div>
+                                </t>
+                                <t t-elif="sl['layout'] == 'cita'">
+                                    <blockquote class="cp-sl-quote"><t t-esc="sl['points'][0] if sl['points'] else sl['subtitle']"/></blockquote>
+                                    <ul t-if="len(sl['points']) &gt; 1" class="cp-sl-cards"><li t-foreach="sl['points'][1:3]" t-as="pt" t-esc="pt"/></ul>
+                                </t>
+                                <t t-else="">
+                                    <div class="cp-sl-split">
+                                        <ul class="cp-sl-cards"><li t-foreach="sl['points']" t-as="pt" t-esc="pt"/></ul>
+                                        <div class="cp-sl-illu" t-out="lesson.illustration(sl)"/>
+                                    </div>
+                                </t>
+                            </div>
+                            <footer class="cp-sl-foot">
+                                <span>Politécnico Internacional · <t t-esc="sm['program']"/></span>
+                                <span><t t-esc="sl_index + 1"/> / <t t-esc="nsl"/></span>
+                                <i t-attf-style="width: #{100.0 * (sl_index + 1) / nsl}%"/>
+                            </footer>
+                        </t>
                     </section>
                 </div>
+                <p class="cp-deck-caption" hidden="hidden" aria-live="polite"/>
                 <div class="cp-deck-bar">
                     <button type="button" class="cp-btn cp-btn-ghost cp-btn-sm" data-deck="prev" aria-label="Anterior">◀</button>
-                    <button t-if="lt == 'video'" type="button" class="cp-btn cp-btn-primary cp-btn-sm" data-deck="play">▶ Reproducir con narración</button>
+                    <button type="button" class="cp-btn cp-btn-primary cp-btn-sm" data-deck="play">▶ <t t-if="lt == 'video'">Reproducir video</t><t t-else="">Escuchar narración</t></button>
+                    <button type="button" class="cp-btn cp-btn-ghost cp-btn-sm" data-deck="cc" title="Subtítulos" aria-pressed="false">CC</button>
                     <div class="cp-deck-dots"/>
+                    <button type="button" class="cp-btn cp-btn-ghost cp-btn-sm" data-deck="full" title="Pantalla completa">⛶</button>
+                    <a t-attf-href="/campus/leccion/#{lesson.id}/pptx" class="cp-btn cp-btn-ghost cp-btn-sm" title="Descargar en PowerPoint">⬇ PPTX</a>
                     <button type="button" class="cp-btn cp-btn-ghost cp-btn-sm" data-deck="next" aria-label="Siguiente">▶</button>
                 </div>
             </div>
             <p class="cp-small cp-muted">
-                <t t-if="lt == 'video'">Video generado por el agente: presentación narrada del tema (usa la voz de tu navegador).
+                <t t-if="lt == 'video'">Video generado por el agente: escenas narradas con voz neuronal en español. Activa CC para ver los subtítulos.
                     <a t-att-href="lesson.youtube_search_url()" target="_blank" rel="noopener">Ver videos sobre este tema en YouTube ↗</a></t>
-                <t t-else="">Presentación generada por el agente a partir del contenido del núcleo. Usa las flechas o el teclado (← →).</t>
-                <t t-if="can_edit"> Puedes reemplazarla cargando un video, un enlace o un archivo abajo.</t>
+                <t t-else="">Presentación generada por el agente. Usa las flechas o el teclado (← →); puedes escucharla con narración.</t>
+                <t t-if="can_edit"> Puedes reemplazarla cargando un video, un enlace o un archivo abajo.
+                    <a t-attf-href="/campus/seccion/#{lesson.section_id.id}/paquete">Descargar el paquete del núcleo (Word + PowerPoint) ↓</a></t>
             </p>
+        </t>
+
+        <t t-elif="lt == 'actividad' and lesson.activity_questions()">
+            <t t-set="aqs" t-value="lesson.activity_questions()"/>
+            <div class="cp-practice cp-casequiz" t-att-data-url="'/campus/leccion/%s/actividad' % lesson.id">
+                <h4>🧩 Actividad interactiva (<t t-esc="len(aqs)"/> casos)</h4>
+                <p class="cp-small cp-muted">Lee cada caso, elige la mejor decisión y revisa la retroalimentación. No afecta tu nota.</p>
+                <div t-foreach="aqs" t-as="q" class="cp-practice-q" t-att-data-q="q['n']">
+                    <p><b>Caso <t t-esc="q_index + 1"/>.</b> <t t-esc="q['text']"/></p>
+                    <button t-foreach="q['options']" t-as="o" type="button" class="cp-practice-opt" t-att-data-o="o_index">
+                        <b t-esc="'ABCDE'[o_index]"/>) <t t-esc="o"/>
+                    </button>
+                    <div class="cp-practice-fb"/>
+                </div>
+                
+            </div>
         </t>
 
         <t t-elif="lesson.needs_guide()">

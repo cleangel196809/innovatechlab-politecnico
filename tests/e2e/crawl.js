@@ -54,7 +54,7 @@ const MAX = parseInt(process.env.CP_MAX || '400', 10);
       for (let h of links) {
         if (!h || h.startsWith('http') || h.startsWith('#') || h.startsWith('mailto')) continue;
         h = h.split('#')[0];
-        if (!h.startsWith('/campus') || /salir|\/pdf$|\/archivo$|\/ver$/.test(h)) continue;
+        if (!h.startsWith('/campus') || /salir|\/pdf$|\/archivo$|\/ver$|\/pptx$|\/paquete$|\.xlsx$/.test(h)) continue;
         if (!seen.has(h)) queue.push(h);
       }
     }

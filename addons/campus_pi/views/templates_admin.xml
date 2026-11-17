@@ -12,7 +12,7 @@
             <div t-if="not ai_enabled" class="cp-alert">⚠️ No hay proveedor de IA configurado: el agente trabajará en <b>modo sin IA</b> (todo se arma solo con el syllabus). Configure una clave gratuita de Gemini o Groq (o Claude/ChatGPT) en <a href="/campus/admin/ia">Proveedor de IA</a> o en las variables de Render.</div>
             <div t-else="" class="cp-alert cp-alert-ok">🤖 Proveedor de IA activo: <b t-esc="ai_label"/> (<a href="/campus/admin/ia">cambiar</a>)<t t-if="not ai_search"> · sin búsqueda web (los datos de la certificación quedarán marcados para verificar)</t>.</div>
             <div t-if="error" class="cp-alert cp-alert-error" t-esc="error"/>
-            <form method="post" enctype="multipart/form-data" class="cp-card cp-form cp-form-grid" data-cp-encode="syllabus">
+            <form method="post" enctype="multipart/form-data" class="cp-card cp-form cp-form-grid" data-cp-encode="syllabus,materials,roster_students,roster_teachers">
                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                 <div class="cp-span-2">
                     <label>Nombre del curso</label>
@@ -21,6 +21,26 @@
                 <div class="cp-span-2">
                     <label>Syllabus (PDF, DOCX o TXT)</label>
                     <input type="file" name="syllabus" accept=".pdf,.docx,.txt" required="required"/>
+                </div>
+                <div class="cp-span-2">
+                    <label>Material del curso (opcional)</label>
+                    <input type="file" name="materials" multiple="multiple"/>
+                    <p class="cp-small cp-muted">Si ya tienes material, súbelo y el agente lo usará como fuente principal: lecturas, guiones,
+                        presentaciones, casos, bancos de preguntas, hojas de cálculo, imágenes, PDF o un <b>.zip</b> con todo. Cualquier formato;
+                        hasta 30 MB por archivo y 60 MB en total. Si el nombre del archivo o de su carpeta indica el núcleo
+                        («N2», «Núcleo 2», «Unidad 2») se usa en ese núcleo; si no, como material general. Los archivos quedan publicados en el
+                        curso como «Material del docente» (una imagen llamada «infografía…» reemplaza la infografía generada y un MP4, el video).</p>
+                </div>
+                <div>
+                    <label>Hoja de estudiantes (opcional)</label>
+                    <input type="file" name="roster_students" accept=".xlsx,.csv"/>
+                    <p class="cp-small cp-muted">Columnas: nombre, teléfono, correo y WhatsApp. El WhatsApp solo se pide en cursos de inglés o informática.
+                        <a href="/campus/admin/usuarios/plantilla.xlsx">Plantilla</a></p>
+                </div>
+                <div>
+                    <label>Hoja de docentes (opcional)</label>
+                    <input type="file" name="roster_teachers" accept=".xlsx,.csv"/>
+                    <p class="cp-small cp-muted">Mismo formato. Las cuentas nuevas entran con <b>Poli2026*</b> y deben cambiarla en su primer ingreso.</p>
                 </div>
                 <div>
                     <label>Certificación internacional objetivo</label>
@@ -162,6 +182,42 @@
                             <b t-esc="'✔ Respondió' if test['ok'] else '✘ Falló'"/><t t-if="test.get('secs')"> en <t t-esc="test['secs']"/> s</t>: <t t-esc="test['text']"/>
                         </div>
                     </div>
+                    <form method="post" class="cp-card cp-form">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <input type="hidden" name="action" value="voice"/>
+                        <h3>🎙️ Voz de las presentaciones y videos</h3>
+                        <p class="cp-small cp-muted">Voces neuronales en español (gratuitas, sin clave). Si el servicio no responde se usa la voz del navegador.
+                            <t t-if="not tts_ok"><br/><b>⚠️ El servidor aún no tiene instalado el paquete edge-tts (se instala con el Dockerfile).</b></t></p>
+                        <label>Voz</label>
+                        <select name="tts_voice">
+                            <option t-foreach="voices" t-as="v" t-att-value="v[0]" t-att-selected="v[0] == tts_voice" t-esc="v[1]"/>
+                        </select>
+                        <label>Velocidad</label>
+                        <select name="tts_rate">
+                            <option t-foreach="[('-10%', 'Pausada'), ('-4%', 'Natural (recomendada)'), ('+0%', 'Normal'), ('+8%', 'Ágil')]" t-as="r"
+                                    t-att-value="r[0]" t-att-selected="r[0] == tts_rate" t-esc="r[1]"/>
+                        </select>
+                        <label class="cp-inline"><input type="checkbox" name="tts_disabled" value="1" t-att-checked="tts_disabled"/> Usar solo la voz del navegador</label>
+                        <button class="cp-btn cp-btn-primary">Guardar voz</button>
+                    </form>
+                    <form method="post" class="cp-card cp-form">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <input type="hidden" name="action" value="mail"/>
+                        <h3>✉️ Correo saliente (recuperación de contraseña)</h3>
+                        <p class="cp-small cp-muted">Render gratuito bloquea el SMTP; use <b>Brevo</b> (300 correos/día gratis: cree la cuenta, verifique el correo remitente y copie una clave API en «SMTP y API») o Resend.</p>
+                        <label>Servicio</label>
+                        <select name="mail_provider">
+                            <option value="brevo" t-att-selected="mail_provider == 'brevo'">Brevo (recomendado)</option>
+                            <option value="resend" t-att-selected="mail_provider == 'resend'">Resend</option>
+                            <option value="odoo" t-att-selected="mail_provider == 'odoo'">Servidor SMTP de Odoo</option>
+                        </select>
+                        <label>Clave API <t t-if="mail_key_set">(ya configurada; escriba otra para cambiarla)</t></label>
+                        <input type="password" name="mail_api_key" autocomplete="off" placeholder="xkeysib-… o re_…"/>
+                        <label>Correo remitente (verificado en el servicio)</label>
+                        <input type="email" name="mail_from" t-att-value="mail_from" placeholder="innovatechlab@pi.edu.co"/>
+                        <label class="cp-inline cp-small"><input type="checkbox" name="mail_test" value="1"/> Enviarme un correo de prueba</label>
+                        <button class="cp-btn cp-btn-primary">Guardar correo</button>
+                    </form>
                     <div class="cp-card">
                         <h3>Dónde obtener una clave</h3>
                         <table class="cp-table">
@@ -187,11 +243,21 @@
                     <p>Ajusta fechas, publica, anexa estudiantes y crea nuevas cuentas. Para editar contenidos y guiones usa “Editar en Odoo”.</p>
                 </div>
             </section>
+            <t t-call="campus_pi.regen_banner"/>
             <div t-if="nuevo" class="cp-alert cp-alert-ok">✅ El agente creó el curso. Revísalo, ajusta lo necesario y publícalo.</div>
+            <form method="post" action="/campus/admin/cursos/regenerar-todos" class="cp-card cp-row"
+                  onsubmit="return confirm('Se volverán a crear TODOS los cursos con los agentes actuales. Se conservan inscripciones, docentes, banco de preguntas y microcredenciales; el avance de lecciones de los estudiantes se reinicia. ¿Continuar?');">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <span>♻️ <b>Regenerar todos los cursos</b> con las habilidades actuales del agente (formato institucional, voz natural, actividad H5P, caso con rúbrica). Se ejecutan uno tras otro.</span>
+                <label class="cp-inline cp-small"><input type="checkbox" name="economy" value="1" checked="checked"/> modo económico (modelo más barato)</label>
+                <label class="cp-inline cp-small"><input type="checkbox" name="deep_research" value="1"/> con investigación web</label>
+                <button class="cp-btn cp-btn-primary cp-btn-sm">Regenerar todos</button>
+            </form>
             <div t-if="msg" class="cp-alert cp-alert-ok" t-esc="msg"/>
             <div class="cp-cols cp-cols-wide">
                 <div>
-                    <form t-foreach="courses" t-as="c" method="post" t-attf-action="/campus/admin/curso/#{c.id}/guardar"
+                    <t t-foreach="courses" t-as="c">
+                    <form method="post" t-attf-action="/campus/admin/curso/#{c.id}/guardar"
                           t-attf-class="cp-card cp-admin-course #{'cp-highlight' if c.id == nuevo else ''}" t-attf-style="--accent: #{c.color or '#160B8B'}">
                         <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                         <div class="cp-section-head">
@@ -224,6 +290,23 @@
                             <a t-attf-href="/web#model=campus.course&amp;id=#{c.id}&amp;view_type=form" class="cp-btn cp-btn-ghost cp-btn-sm">Editar en Odoo</a>
                         </div>
                     </form>
+                    <details class="cp-card cp-regen">
+                        <summary>♻️ Regenerar «<t t-esc="c.name"/>» con el agente</summary>
+                        <form method="post" enctype="multipart/form-data" t-attf-action="/campus/admin/curso/#{c.id}/regenerar"
+                              class="cp-form" data-cp-encode="materials"
+                              onsubmit="return confirm('El curso se volverá a crear con los agentes actuales. Se conservan inscripciones, docentes, banco de preguntas y microcredenciales; el avance de lecciones se reinicia. ¿Continuar?');">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <p class="cp-small cp-muted">Se conserva la estructura de núcleos y el contenido actual se entrega al agente como material del docente. El curso actual no cambia hasta que el agente termine.</p>
+                            <label>Material adicional (opcional, cualquier formato o .zip)</label>
+                            <input type="file" name="materials" multiple="multiple"/>
+                            <label>Instrucciones para el agente (opcional)</label>
+                            <textarea name="instructions" rows="2" placeholder="Ej.: más ejemplos con Spring Boot 4; caso integrador con la distribuidora El Surtidor."/>
+                            <label class="cp-inline cp-small"><input type="checkbox" name="economy" value="1" checked="checked"/> modo económico (modelo más barato, ahorra tokens)</label>
+                            <label class="cp-inline cp-small"><input type="checkbox" name="deep_research" value="1"/> con investigación web</label>
+                            <button class="cp-btn cp-btn-primary cp-btn-sm">Regenerar este curso</button>
+                        </form>
+                    </details>
+                    </t>
                 </div>
                 <div>
                     <form method="post" action="/campus/admin/estudiante/crear" class="cp-card cp-form">
@@ -234,6 +317,27 @@
                         <label>Contraseña inicial</label><input type="text" name="password" required="required" minlength="8"/>
                         <button class="cp-btn cp-btn-primary">Crear cuenta</button>
                     </form>
+                    <form method="post" action="/campus/admin/usuarios/importar" enctype="multipart/form-data" class="cp-card cp-form">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <h3>📥 Cargar estudiantes o docentes desde Excel</h3>
+                        <p class="cp-small cp-muted">Columnas: <b>nombre</b>, <b>teléfono</b>, <b>correo</b> y <b>WhatsApp</b> (opcional; se pide en cursos de inglés o informática). La primera fila puede tener los títulos.
+                            <a href="/campus/admin/usuarios/plantilla.xlsx">Descargar plantilla</a></p>
+                        <label>Tipo de usuario</label>
+                        <select name="role">
+                            <option value="student">Estudiantes</option>
+                            <option value="teacher">Docentes</option>
+                        </select>
+                        <label>Curso (opcional)</label>
+                        <select name="course_id">
+                            <option value="">— Solo crear las cuentas —</option>
+                            <option t-foreach="courses" t-as="c" t-att-value="c.id" t-esc="c.name"/>
+                        </select>
+                        <p class="cp-small cp-muted">Estudiantes: quedan inscritos en el curso. Docentes: quedan asignados al curso.</p>
+                        <p class="cp-small">Las cuentas nuevas entran con la contraseña <b>Poli2026*</b> y el sistema les pide cambiarla en el primer ingreso.</p>
+                        <label>Archivo (.xlsx o .csv)</label>
+                        <input type="file" name="file" required="required" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"/>
+                        <button class="cp-btn cp-btn-primary">Cargar listado</button>
+                    </form>
                     <div class="cp-card">
                         <h3>Atajos</h3>
                         <a href="/campus/admin/crear-curso" class="cp-btn cp-btn-primary cp-btn-block">🤖 Crear curso con IA</a>
@@ -241,6 +345,70 @@
                         <a href="/web#action=campus_pi.action_enrollment" class="cp-btn cp-btn-ghost cp-btn-block">Inscripciones (análisis)</a>
                     </div>
                 </div>
+            </div>
+        </t>
+    </template>
+    <template id="admin_import_result" name="Admin - resultado de la carga de usuarios">
+        <t t-call="campus_pi.layout">
+            <section class="cp-hero">
+                <div>
+                    <p class="cp-eyebrow">Administración</p>
+                    <h1>📥 Carga de <t t-esc="role_label"/> desde Excel</h1>
+                    <p t-if="course">Curso: <b t-esc="course.name"/></p>
+                </div>
+            </section>
+            <div t-if="error" class="cp-alert cp-alert-error" t-esc="error"/>
+            <t t-set="nok" t-value="len([r for r in results if r['ok']])"/>
+            <div t-if="results" class="cp-alert cp-alert-ok">
+                ✅ <t t-esc="nok"/> de <t t-esc="len(results)"/> personas procesadas
+                (<t t-esc="len([r for r in results if r['status'].startswith('Creado')])"/> cuentas nuevas).
+                <t t-if="errors"> <t t-esc="len(errors)"/> filas con problemas.</t>
+            </div>
+            <div class="cp-card" t-if="results">
+                <div class="cp-row">
+                    <h3>Resultado</h3>
+                    <a t-if="xlsx_b64" class="cp-btn cp-btn-primary cp-btn-sm" download="credenciales_campus.xlsx"
+                       t-attf-href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,#{xlsx_b64}">⬇ Descargar credenciales (Excel)</a>
+                </div>
+                <p class="cp-small cp-muted">Las cuentas nuevas usan la contraseña <b>Poli2026*</b>; al ingresar por primera vez se les pide cambiarla. Si olvidan la nueva, la recuperan desde «¿Olvidaste tu contraseña?».</p>
+                <div class="cp-table-wrap">
+                <table class="cp-table cp-import-result">
+                    <tr><th>Nombre</th><th>Usuario</th><th>Contraseña inicial</th><th>Teléfono</th><th>WhatsApp</th><th>Resultado</th></tr>
+                    <tr t-foreach="results" t-as="r">
+                        <td t-esc="r['name']"/><td t-esc="r['email']"/>
+                        <td><code t-if="r['password']" t-esc="r['password']"/><span t-else="" class="cp-muted">—</span></td>
+                        <td t-esc="r['phone'] or '—'"/>
+                        <td t-esc="r.get('whatsapp') or '—'"/>
+                        <td t-att-class="'cp-tag-ok' if r['ok'] else 'cp-tag-err'" t-esc="r['status']"/>
+                    </tr>
+                </table>
+                </div>
+            </div>
+            <div class="cp-card" t-if="errors">
+                <h3>Filas no cargadas</h3>
+                <table class="cp-table cp-import-result">
+                    <tr><th>Fila</th><th>Nombre</th><th>Correo</th><th>Motivo</th></tr>
+                    <tr t-foreach="errors" t-as="r"><td t-esc="r['row']"/><td t-esc="r['name']"/><td t-esc="r['email']"/><td class="cp-tag-err" t-esc="r['error']"/></tr>
+                </table>
+            </div>
+            <a href="/campus/admin/cursos" class="cp-btn cp-btn-ghost">← Volver a cursos</a>
+        </t>
+    </template>
+    <template id="regen_banner" name="Aviso de regeneración de cursos">
+        <t t-if="regen and (regen['jobs'] or regen['pending'])">
+            <div t-attf-class="cp-alert #{'cp-alert-ok' if regen['jobs'] else ''}">
+                <t t-if="regen['pending']">♻️ Los cursos existentes están marcados para <b>regenerarse con los agentes nuevos</b>.
+                    Configure un <a href="/campus/admin/ia">proveedor de IA</a> y vuelva a esta página: la regeneración empieza sola.</t>
+                <t t-elif="regen['active']">♻️ <b>Regenerando los cursos con los agentes nuevos.</b> Deje abierta la página de avance
+                    (en Render gratuito el servidor se duerme si nadie lo usa).</t>
+                <t t-else="">♻️ Regeneración de cursos terminada.</t>
+                <ul t-if="regen['jobs']" class="cp-small" style="margin:6px 0 0">
+                    <li t-foreach="regen['jobs']" t-as="j">
+                        <a t-attf-href="/campus/admin/agente/#{j.id}" t-esc="j.name"/> —
+                        <t t-esc="dict(j._fields['state'].selection).get(j.state)"/><t t-if="j.state == 'running'"> (<t t-esc="j.progress"/> %)</t>
+                        <t t-if="j.state == 'error'">: <t t-esc="(j.error or '')[:140]"/></t>
+                    </li>
+                </ul>
             </div>
         </t>
     </template>

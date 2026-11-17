@@ -130,6 +130,7 @@
                     <div><b t-esc="stats['badges']"/><span>microcredenciales</span></div>
                 </div>
             </section>
+            <t t-call="campus_pi.regen_banner"/>
 
             <div class="cp-kpis">
                 <div class="cp-kpi"><b t-esc="stats['enrollments']"/><span>Inscripciones</span></div>

@@ -113,6 +113,19 @@ class CampusAiAgent(models.AbstractModel):
         return {"provider": prov, "key": self._key_for(prov) if prov else "", "url": self._api_url(),
                 "model": self._model()}
 
+    BULK_MODELS = {"anthropic": "claude-haiku-5-5", "openai": "gpt-4o-mini"}
+
+    @api.model
+    def bulk_conf(self):
+        """Configuración económica para generar o regenerar cursos completos: modelo más barato del mismo
+        proveedor (Claude Haiku en lugar de Sonnet). Se puede fijar otro en el parámetro campus_pi.ai_bulk_model."""
+        conf = dict(self._llm_conf())
+        model = self.env["ir.config_parameter"].sudo().get_param("campus_pi.ai_bulk_model") or \
+            self.BULK_MODELS.get(conf["provider"])
+        if model and conf["provider"] != "compatible":
+            conf["model"] = model
+        return conf
+
     @api.model
     def provider_label(self):
         conf = self._llm_conf()
@@ -270,54 +283,119 @@ puede verificar, dilo en "advertencias". Respondes SOLO con JSON válido."""
 
     # ----------------------------------------------- contenido por núcleo
     NUCLEO_SYSTEM = """Eres el Agente de Diseño Instruccional de InnovaTech Lab del Politécnico Internacional (Colombia).
-Desarrollas el contenido completo de UN núcleo de un curso virtual a partir del syllabus institucional
-(PI-GA-FT-141), respetando su objetivo, temas, estrategias y criterios de evaluación, y alineándolo con la
-certificación internacional objetivo y con la investigación verificada que se te entrega. Escribes en español
-de Colombia, claro, riguroso y con ejemplos de organizaciones colombianas. Citas las fuentes de la investigación
-con enlaces <a href> en la lectura. Nunca inventas URL: usa solo las de la investigación o del syllabus.
+Desarrollas los materiales de UN núcleo de un curso virtual a partir del syllabus institucional (PI-GA-FT-141),
+respetando su objetivo, temas, estrategias y criterios de evaluación, y alineándolo con la certificación
+internacional objetivo y con la investigación verificada que se te entrega.
+Sigues los formatos de la Unidad Virtual del Politécnico: lectura del núcleo (presentación, «Lo que lograrás»,
+secciones numeradas con tablas, código y recuadros, buenas prácticas, casos para reflexionar, glosario y
+referencias APA 7), recursos bibliográficos (libro guía y material complementario), infografía (pregunta
+orientadora, texto orientador de máximo 300 caracteres y 10-14 términos clave) y caso integrador con rúbrica
+(BUENO 100 %, REGULAR 60 %, INSUFICIENTE 0 %).
+Escribes en español de Colombia, en un tono cercano y profesional (tuteo), riguroso y con ejemplos de una
+organización colombiana ficticia que se usa como hilo conductor. Nunca inventas URL ni referencias: usa solo
+las de la investigación o del syllabus. Respondes SOLO con JSON válido, sin texto adicional."""
+
+    MEDIA_SYSTEM = """Eres el guionista y diseñador de presentaciones de InnovaTech Lab del Politécnico Internacional.
+Conviertes un núcleo de un curso en un video explicativo por escenas (cada escena es una diapositiva con lo que
+se ve en pantalla y lo que dice el docente) y en una actividad interactiva tipo VideoQuiz (H5P).
+
+DISEÑO DE LAS DIAPOSITIVAS (estilo institucional, sobrio y profesional):
+- Pocas palabras en pantalla: 2-5 frases cortas por escena, nunca párrafos. Nada de emojis.
+- Varía los formatos: portada (primera), puntos con ícono, código, tabla comparativa, proceso por pasos,
+  comparación (bien/mal), cita o idea clave, y cierre (última).
+- Usa código real y correcto cuando el tema sea técnico; usa tablas para comparar; usa proceso para secuencias.
+
+REGLAS DE VOZ (la narración la lee una voz neuronal y debe sonar humana, no robótica):
+- Habla como un docente en clase, de tú a tú: frases cortas (máx. 22 palabras), conectores naturales
+  («fíjate en», «ahora bien», «piénsalo así», «por ejemplo»), una analogía o un ejemplo del caso por escena.
+- No leas las viñetas: explícalas y agrega lo que no está en pantalla.
+- Escribe los símbolos como se pronuncian: @Valid → «arroba Valid», application/json → «application barra json»,
+  .properties → «punto properties», 404 → «cuatrocientos cuatro», 25 % → «veinticinco por ciento».
+- Sin URL, sin markdown, sin paréntesis largos ni listas dentro de la narración. Explica las siglas la primera vez.
+- La primera escena da la bienvenida y presenta la ruta; la última resume y anuncia lo que sigue.
+
+ACTIVIDAD: preguntas tipo caso (situación concreta + decisión), 4 opciones plausibles, 1 correcta y
+retroalimentación que explique el porqué de cada opción. Indica después de qué escena aparece cada una.
 Respondes SOLO con JSON válido, sin texto adicional."""
 
-    @api.model
-    def nucleo_content_payload(self, summary, nuc, cert_info, research, instructions=None, conf=None):
-        """Genera el contenido de un núcleo. No usa la base de datos si se pasa ``conf``."""
-        from .agent_job import NUCLEO_SCHEMA
-        conf = conf or self._llm_conf()
+    def _nucleo_prompt_head(self, nuc, cert_info, research, instructions, summary, material=None):
         rn = next((x for x in (research or {}).get("nucleos") or [] if x.get("numero") == nuc["numero"]), {})
         cert_txt = "Ninguna"
         if cert_info:
             cert_txt = "%s (%s, %s). Dominios: %s" % (cert_info["name"], cert_info["provider"], cert_info["code"],
                                                        "; ".join("%s %s%%" % d for d in cert_info["domains"]))
-        prompt = (
+        return (
             "NÚCLEO %s – %s\nObjetivo: %s\nTemas: %s\nEstrategias: %s\nCriterios de evaluación: %s\n\n"
             "CERTIFICACIÓN: %s\nINVESTIGACIÓN VERIFICADA PARA ESTE NÚCLEO: %s\n"
-            "INSTRUCCIONES DEL ADMINISTRADOR: %s\n\nSYLLABUS COMPLETO (contexto):\n%s\n\n"
-            "Requisitos: lectura de 900-1300 palabras con <h4>, <ul>, ejemplos y una sección final «Fuentes» con "
-            "enlaces; presentación de 7-9 diapositivas (3-5 puntos cada una); infografía de 5-6 puntos; guion del "
-            "video de 3-5 minutos y una búsqueda de YouTube en español; actividad formativa; laboratorio práctico "
-            "con pasos (o null si el núcleo no lo admite); evaluación según los criterios del syllabus con "
-            "instrucciones, entregables y rúbrica en tabla (BUENO/REGULAR/INSUFICIENTE); agenda de la sesión "
-            "virtual de 90 min; guion del agente IA para la sesión presencial (diagnóstico, preguntas "
-            "detonantes, reto práctico, cierre); 6 preguntas tipo examen de opción múltiple (4 opciones, 1 "
-            "correcta, retroalimentación por opción) con el nombre exacto del dominio de la certificación.\n"
-            "Esquema JSON exacto:\n%s") % (
+            "INSTRUCCIONES DEL ADMINISTRADOR: %s\n\nSYLLABUS COMPLETO (contexto):\n%s\n\n") % (
             nuc["numero"], nuc["titulo"], nuc.get("objetivo") or "-", "; ".join(nuc.get("temas") or []) or "-",
             "; ".join(nuc.get("estrategias") or []) or "-", " ".join(nuc.get("criterios") or []) or "-",
-            cert_txt, json.dumps(rn, ensure_ascii=False)[:5000] or "-", instructions or "-", summary[:9000],
-            NUCLEO_SCHEMA)
+            cert_txt, json.dumps(rn, ensure_ascii=False)[:5000] or "-", instructions or "-", summary[:9000]) + (
+            ("MATERIAL DEL DOCENTE PARA ESTE NÚCLEO (fuente PRIORITARIA: respeta sus explicaciones, ejemplos, caso, "
+             "código y terminología; complétalo y llévalo al formato institucional, no lo contradigas; si trae una "
+             "lectura, un guion o un caso, mejóralos en lugar de reemplazarlos por otros):\n%s\n\n") % material
+            if material else "")
+
+    def _json_call(self, conf, system, prompt, label, max_tokens=16000, retry_hint=""):
         last = None
         for attempt in range(2):
             msgs = [{"role": "user", "content": prompt + (
-                "\n\nIMPORTANTE: la respuesta anterior no fue JSON válido o quedó incompleta; sé más conciso "
-                "(lectura de máximo 800 palabras)." if attempt else "")}]
-            text, _src, stop = call_messages(conf, self.NUCLEO_SYSTEM, msgs, max_tokens=16000, temperature=0.5,
+                "\n\nIMPORTANTE: la respuesta anterior no fue JSON válido o quedó incompleta; %s" % retry_hint
+                if attempt else "")}]
+            text, _src, stop = call_messages(conf, system, msgs, max_tokens=max_tokens, temperature=0.5,
                                              timeout=600, json_mode=True)
             try:
                 data = self._json(text)
-                if isinstance(data, dict) and data.get("lectura"):
+                if isinstance(data, dict):
                     return data
             except ValueError as e:
                 last = e
-        raise UserError("Respuesta inválida del modelo para el núcleo %s (%s)" % (nuc["numero"], last))
+        raise UserError("Respuesta inválida del modelo para %s (%s)" % (label, last))
+
+    @api.model
+    def nucleo_content_payload(self, summary, nuc, cert_info, research, instructions=None, conf=None, with_case=True,
+                               material=None):
+        """Lectura, bibliografía, infografía, caso, sesiones y preguntas. No usa la BD si se pasa ``conf``."""
+        from .agent_job import NUCLEO_SCHEMA
+        from ..tools.visual import ICON_NAMES
+        conf = conf or self._llm_conf()
+        prompt = self._nucleo_prompt_head(nuc, cert_info, research, instructions, summary, material) + (
+            "Requisitos: lectura de 1200-1600 palabras en secciones numeradas, con al menos una tabla, ejemplos "
+            "(código real si el tema es técnico) y 1-2 recuadros; 3 casos para reflexionar; glosario; referencias APA. "
+            "Bibliografía: 1-2 libros guía (prefiere libros de acceso libre o de E-libro) con capítulos o páginas a "
+            "consultar, y 4-8 recursos complementarios oficiales. Infografía de 10-14 términos. %s"
+            "Laboratorio práctico con pasos (o null si el núcleo no lo admite); agenda de la sesión virtual de 90 min; "
+            "guion del agente IA para la sesión presencial (diagnóstico, preguntas detonantes, reto práctico, cierre); "
+            "6 preguntas tipo examen de opción múltiple (4 opciones, 1 correcta, retroalimentación por opción) con el "
+            "nombre exacto del dominio de la certificación.\nICONOS disponibles: %s\nEsquema JSON exacto:\n%s") % (
+            ("Caso integrador: historia, indicaciones numeradas, entregables, tabla de solución para el docente y "
+             "rúbrica de 4 criterios que suman 5,0 según los criterios de evaluación del syllabus. ") if with_case
+            else "El campo «caso» va en null. ", ", ".join(ICON_NAMES), NUCLEO_SCHEMA)
+        data = self._json_call(conf, self.NUCLEO_SYSTEM, prompt, "el núcleo %s" % nuc["numero"],
+                               retry_hint="sé más conciso (lectura de máximo 900 palabras).")
+        if not data.get("lectura"):
+            raise UserError("El modelo no devolvió la lectura del núcleo %s" % nuc["numero"])
+        return data
+
+    @api.model
+    def nucleo_media_payload(self, summary, nuc, cert_info, research, instructions=None, conf=None, course_name="",
+                             material=None, economy=False):
+        """Escenas del video/presentación con narración natural y actividad interactiva (H5P)."""
+        from .agent_job import MEDIA_SCHEMA
+        from ..tools.visual import ICON_NAMES
+        conf = conf or self._llm_conf()
+        prompt = self._nucleo_prompt_head(nuc, cert_info, research, instructions, summary,
+                                          (material or "")[:8000] or None) + (
+            "CURSO: %s\nCrea el video explicativo del núcleo (%s escenas, unos %s minutos en total a 145 palabras por "
+            "minuto) y la actividad interactiva (%s preguntas tipo caso repartidas a lo largo del video).\n"
+            "ICONOS disponibles: %s\nEsquema JSON exacto:\n%s") % (
+            course_name or "-", "9-11" if economy else "12-16", 12 if economy else 18, "8" if economy else "10-15",
+            ", ".join(ICON_NAMES), MEDIA_SCHEMA)
+        data = self._json_call(conf, self.MEDIA_SYSTEM, prompt, "el video del núcleo %s" % nuc["numero"],
+                               max_tokens=14000, retry_hint="usa 10 escenas de máximo 110 palabras y 8 preguntas.")
+        if not data.get("escenas"):
+            raise UserError("El modelo no devolvió escenas para el núcleo %s" % nuc["numero"])
+        return data
 
     # ------------------------------------------------- banco de preguntas
     @api.model
